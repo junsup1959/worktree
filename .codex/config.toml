@@ -1,0 +1,4 @@
+[mcp_servers.sequential-thinking]
+command = "cmd"
+args = ["/c", "npx", "-y", "@modelcontextprotocol/server-sequential-thinking"]
+startup_timeout_sec = 30
