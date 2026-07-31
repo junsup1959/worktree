@@ -5,4 +5,5 @@ __pycache__/
 .jsfwork/learning/
 graphify-out/
 .codex/skills/
-.codex/skills/hooks.json
+.codex/hooks.json
+.codex/config.toml
