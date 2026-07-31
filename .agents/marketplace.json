@@ -1,0 +1,21 @@
+{
+  "name": "jsfwork-marketplace",
+  "interface": {
+    "displayName": "JSFWORK Marketplace"
+  },
+  "plugins": [
+    {
+      "name": "jsfwork",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/junsup1959/worktree.git",
+        "ref": "master"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
