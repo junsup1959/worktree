@@ -9,7 +9,7 @@
       "source": {
         "source": "url",
         "url": "https://github.com/junsup1959/worktree.git",
-        "ref": "master"
+        "ref": "main"
       },
       "policy": {
         "installation": "AVAILABLE",

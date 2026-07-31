@@ -70,7 +70,7 @@ codex plugin marketplace list
 ### 3. JSFWORK 플러그인 설치
 
 ```powershell
-codex plugin add jsfwork@jsfwork-marketplace
+codex plugin add jsfwork@jsfwork
 ```
 
 설치 결과를 확인합니다.
