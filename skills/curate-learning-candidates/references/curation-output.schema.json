@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Learning candidate curation result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "batch_id",
+    "decisions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "batch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decisions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_candidate_ids",
+          "disposition",
+          "category",
+          "lesson",
+          "applies_when",
+          "procedure",
+          "avoid",
+          "target",
+          "target_skill",
+          "merge_proposal_id",
+          "requires_verification",
+          "reason"
+        ],
+        "properties": {
+          "source_candidate_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "disposition": {
+            "type": "string",
+            "enum": [
+              "proposed",
+              "rejected",
+              "deferred"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "skill",
+              "project-guidance",
+              "user-memory",
+              "temporary"
+            ]
+          },
+          "lesson": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "applies_when": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "procedure": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "avoid": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "existing-skill",
+              "new-skill",
+              "agents-md",
+              "project-reference",
+              "user-memory",
+              "discard"
+            ]
+          },
+          "target_skill": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "merge_proposal_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requires_verification": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

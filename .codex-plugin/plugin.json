@@ -1,0 +1,30 @@
+{
+  "name": "jsfwork",
+  "version": "0.1.0+codex.20260728161304",
+  "description": "An extensible AX framework for team-oriented AI-assisted engineering.",
+  "author": {
+    "name": "junsup1959"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "JSFWORK",
+    "shortDescription": "Build AX workflows with composable Codex capabilities.",
+    "longDescription": "JSFWORK is an extensible AX framework for Codex. It combines approval-aware project initialization, a reusable large-scope exploration agent, and a five-role implementation team with role-specific project agents.",
+    "developerName": "junsup1959",
+    "category": "Productivity",
+    "capabilities": [
+      "Team-based implementation orchestration",
+      "Large-scope file and content exploration",
+      "Composable AX workflows",
+      "Approval-aware project Codex and custom-agent initialization",
+      "Repository implementation and QA"
+    ],
+    "defaultPrompt": [
+      "Use $orcheestrate-team to coordinate this implementation.",
+      "Use the explore project agent to inspect this large file set and return a summary.",
+      "Coordinate this change as a JSFWORK team workflow.",
+      "Use $jsfwork-init to initialize this repository for JSFWORK."
+    ]
+  }
+}

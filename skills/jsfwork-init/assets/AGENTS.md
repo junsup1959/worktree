@@ -1,18 +1,3 @@
-## 복잡한 사고가 필요한 경우 sequentialthinking Tool 사용
-- 예시
-  - 복잡한 아키텍처 구성 시
-  - 대규모 리펙터링 작업 시
-  - 복잡한 원인 추적 시
-  - 비즈니스 로직 및 알고리즘 검증 시
-  - 그 외 복잡한 추론이 필요한 경우
-
-## 적용 범위와 우선 원칙
-
-이 저장소는 특정 제품의 단일 에이전트를 만드는 곳이 아니라, 나만의 AX FrameWork Plugin을 만드는 **Skill 생성소**다. 
-또한 이 프레임워크는 프로젝트 단위로만 진행된다는 점 명심해라
-이 파일의 규칙은 저장소 전체에
-적용한다.
-
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

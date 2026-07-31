@@ -1,9 +1,9 @@
 ---
-name: orchestrate-agent-team
+name: orcheestrate-team
 description: Orchestrate implementation work through a fixed five-member team consisting of the primary PM, one PL, two developers, and one QA reviewer. Use when the user explicitly asks for team-based or multi-agent implementation with PM-owned architecture, PL-owned task decomposition and assignment, controlled peer collaboration, and QA review of each completed task.
 ---
 
-# Orchestrate Agent Team
+# Orcheestrate Team
 
 Run a collaborative implementation team without turning the work into a workflow engine. Use role prompts and natural-language messages for collaboration. Use a lightweight Task DAG only to make dependency order and assignment clear; do not require JSON message schemas, state machines, queues, leases, rewards, evaluation loops, or self-improvement loops.
 
@@ -19,6 +19,27 @@ Use exactly five roles:
 
 The PM creates exactly four subagents for PL, Developer 1, Developer 2, and QA. Give them stable, descriptive task names and retain the returned agent targets.
 
+- Prefer the repository-local custom agent profile matching each role type:
+
+  | Role | Custom agent profile | Model | Reasoning effort | Sandbox |
+  | --- | --- | --- | --- | --- |
+  | PL | `orcheestrate-team-pl` | `gpt-5.4` | `high` | `read-only` |
+  | Developer 1 | `orcheestrate-team-developer` | `gpt-5.3-codex-spark` | `medium` | `workspace-write` |
+  | Developer 2 | `orcheestrate-team-developer` | `gpt-5.3-codex-spark` | `medium` | `workspace-write` |
+  | QA | `orcheestrate-team-qa` | `gpt-5.4` | `high` | `read-only` |
+
+- Treat the developer profile as reusable role configuration, not as a team
+  member identity. Spawn it twice with distinct stable task names and initial
+  prompts that identify one session as Developer 1 and the other as Developer
+  2. Retain both returned agent targets.
+- When the collaboration host exposes a custom-profile or agent-type selector,
+  select the exact profile above. When it exposes only model and reasoning
+  overrides, pass the listed model and effort and include the matching role
+  prompt as a runtime fallback, but do not claim that the custom profile or
+  its sandbox was applied.
+- Treat the user's active runtime permission mode as authoritative when it
+  overrides a custom profile. Never silently substitute another model, effort,
+  role, or sandbox.
 - Treat an upstream agent that delegated to the PM as outside this five-member team. Do not recursively invoke this skill to create another team.
 - Do not create additional roles or agents unless the user explicitly approves a team change.
 - Tell every subagent not to spawn more agents.
@@ -56,6 +77,8 @@ Only the PL creates or changes executable developer assignments. The PL may prop
 
 - Implement only the node assigned by the PL.
 - Inspect dependencies and relevant repository instructions before editing.
+- Implement the assigned outcome and run verification proportional to its
+  behavior, failure paths, and regression risk.
 - Report discoveries that imply new work, changed scope, or changed priorities to the PL instead of self-assigning them.
 - Contact the other developer directly only when shared files, modules, APIs, types, interfaces, or dependencies overlap.
 - Coordinate directly with QA while QA reviews the developer's completed node.
@@ -110,11 +133,12 @@ Use explicit dependency references in prose when they matter. For example:
 
 Use collaboration tools according to intent:
 
-- Use `send_message` to provide information to a member who is still running; it does not wake an idle or completed member.
-- Use `followup_task` to start or wake an idle or completed member. Only the PL may use it to create or change an executable assignment. A permitted peer may use it solely to resume an existing review or shared-area discussion; that does not authorize new work.
-- Use `wait_agent` while assigned work or review is still running.
+- Use `spawn_agent` to create a roster member and start that member's first turn. Give the initial prompt a bounded role task; do not treat spawning as passive registration.
+- Use `send_message` to provide information to an existing member without starting a new turn. When the member is running, the message is delivered during that turn as the host permits.
+- Use `followup_task` to give an existing member another task and start a turn when that member is idle. When the member is already running, the host delivers the task at a message boundary or after its pending tool call. Only the PL may use it to create or change an executable assignment. A permitted peer may use it solely to resume an existing review or shared-area discussion; that does not authorize new work.
+- Use `wait_agent` to wait for a mailbox update while assigned work or review is still running. Treat the returned update notice as synchronization, not as the member's full result.
 - Use `list_agents` to supervise the fixed roster.
-- Use `interrupt_agent` only when current work is no longer needed because it was superseded, unsafe, redirected, or team execution is concluding.
+- Use `interrupt_agent` only when current work is no longer needed because it was superseded, unsafe, redirected, or team execution is concluding. Interruption stops the current turn but leaves the member available for later communication.
 
 ## Build a lightweight Task DAG
 
@@ -145,7 +169,10 @@ The PL may revise the DAG when implementation evidence changes the plan. If a re
 
 ### 1. Establish the architecture and roster
 
-Inspect enough repository and request context to set an architecture baseline. Create the four subagents, record their returned targets, and tell every member:
+Inspect enough repository and request context to set an architecture baseline.
+Create the four subagents with the role profiles defined under **Keep the team
+fixed**, record their returned targets and the actual profile or runtime
+overrides used, and tell every member:
 
 - the original user request,
 - the applicable repository instructions,
@@ -154,19 +181,28 @@ Inspect enough repository and request context to set an architecture baseline. C
 - that only PL assignments authorize executable work,
 - not to spawn more agents.
 
+Use `orcheestrate-team-developer` for both developer creation calls. Give the
+calls distinct stable task names and initial prompts that establish Developer
+1 and Developer 2 as separate runtime identities. A shared profile name never
+collapses their targets or authorizes either session to act as the other.
+
+Because `spawn_agent` immediately starts the member's first turn, give the PL the initial planning task. Give each developer and QA a bounded orientation-and-readiness task until the PL sends an executable assignment or review handoff. A readiness task must not edit files or claim implementation progress.
+
 Send the PL the exact targets for both developers and QA so the PL can coordinate them directly.
 
 Treat a broadcast as the same decision sent separately to PL, both developers, and QA. Confirm all four deliveries before relying on the new architecture or scope.
 
 ### 2. Align PM and PL
 
-Ask the PL to challenge missing dependencies, shared-write risks, and implementation-guide gaps, then produce the Task DAG. Resolve architecture-level questions as PM. Broadcast the approved architecture and any later change to the whole team.
+Ask the PL to challenge missing dependencies, shared-write risks, implementation-guide gaps, and verification needs, then produce the Task DAG. Resolve architecture-level questions as PM. Broadcast the approved architecture and any later change to the whole team.
 
 Do not begin developer implementation before the PL has identified ready nodes and their dependencies.
 
 ### 3. Assign ready nodes
 
-Have the PL assign one ready node to each available developer. Include the node's boundaries, relevant dependency decisions, expected repository checks, and QA focus in the natural-language assignment.
+Have the PL assign one ready node to each available developer. Include the
+node's boundaries, relevant dependency decisions, expected repository checks,
+and QA focus in the natural-language assignment.
 
 Parallelize independent nodes. Serialize nodes that touch the same files or shared interface unless the PL names one owner and explicitly defines how the other developer will coordinate.
 
@@ -183,7 +219,10 @@ Do not allow two developers to silently make competing changes to a shared area.
 
 ### 5. Review every completed node
 
-Have the developer report completion to the PL with implementation evidence. The PL then hands that node to QA. QA reviews it and may communicate directly with the responsible developer while the review remains active.
+Have the developer report completion to the PL with implementation and
+verification evidence. The PL then hands that node and its QA verification
+focus to QA. QA reviews it and may communicate directly with the responsible
+developer while the review remains active.
 
 Have QA return one of these natural-language outcomes to the PL:
 
@@ -218,7 +257,11 @@ Keep prompts contextual rather than schema-bound. Include these anchors when cre
 
 ### Developer prompt anchor
 
-> You are Developer [1 or 2] in a fixed team. Work only on the DAG node assigned by the PL. Coordinate directly with the other developer only for shared areas or dependencies, and with QA only during review. Report new work or scope changes to the PL rather than self-assigning them. Do not spawn agents.
+> You are Developer [1 or 2] in a fixed team. Work only on the DAG node
+> assigned by the PL. Coordinate directly with the other developer only for
+> shared areas or dependencies, and with QA only during review. Report
+> conflicts, new work, or scope changes to the PL rather than self-assigning
+> them. Do not spawn agents.
 
 ### QA prompt anchor
 
@@ -226,9 +269,6 @@ Keep prompts contextual rather than schema-bound. Include these anchors when cre
 
 ## Avoid orchestration drift
 
-- Do not introduce GoalSpec, formal completion-condition schemas, rewards, evaluators, learning memory, or optimization loops.
-- Do not build a queue, lease system, database, worker protocol, or generalized workflow runtime.
-- Do not force ordinary collaboration into JSON or enumerated status fields.
 - Do not permit peer messages to bypass PL assignment authority.
 - Do not let the PM become the routine relay between team members.
 - Do not add agents because work is slow; split or resequence the existing DAG through the PL.

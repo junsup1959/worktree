@@ -1,0 +1,5 @@
+interface:
+  display_name: "Learning Candidate Curator"
+  short_description: "Turn project learning data into reviewable proposals"
+  default_prompt: "Use $curate-learning-candidates to turn this project's unreviewed learning candidates into approval-ready proposals."
+

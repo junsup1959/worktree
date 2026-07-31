@@ -1,0 +1,4 @@
+interface:
+  display_name: "BDD"
+  short_description: "Apply focused behavior-driven development"
+  default_prompt: "Use $bdd to define a focused behavior scenario and apply Red, Green, and Refactor verification."

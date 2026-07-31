@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orcheestrate Team"
+  short_description: "Coordinate a fixed PM, PL, developer, and QA team"
+  default_prompt: "Use $orcheestrate-team to organize this implementation across a PM, PL, two developers, and QA."
