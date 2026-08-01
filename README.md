@@ -27,7 +27,7 @@ Codex가 이 저장소를 marketplace로 인식하려면 저장소에 다음 파
 
 ```json
 {
-  "name": "jsfwork-marketplace",
+  "name": "jsfwork",
   "interface": {
     "displayName": "JSFWORK Marketplace"
   },
@@ -58,7 +58,7 @@ Codex가 이 저장소를 marketplace로 인식하려면 저장소에 다음 파
 Codex CLI가 설치된 PC에서 다음 명령을 실행합니다.
 
 ```powershell
-codex plugin marketplace add junsup1959/worktree --ref master
+codex plugin marketplace add junsup1959/worktree --ref main
 ```
 
 등록 결과를 확인합니다.
@@ -87,7 +87,7 @@ Codex CLI에서는 `/plugins`를 입력해 플러그인 브라우저에서도 �
 
 ```powershell
 & "$env:APPDATA\npm\codex.cmd" plugin marketplace add junsup1959/worktree --ref master
-& "$env:APPDATA\npm\codex.cmd" plugin add jsfwork@jsfwork-marketplace
+& "$env:APPDATA\npm\codex.cmd" plugin add jsfwork@jsfwork
 ```
 
 ### Marketplace 업데이트
@@ -95,21 +95,21 @@ Codex CLI에서는 `/plugins`를 입력해 플러그인 브라우저에서도 �
 GitHub에 새 버전을 push한 뒤 marketplace snapshot을 갱신합니다.
 
 ```powershell
-codex plugin marketplace upgrade jsfwork-marketplace
+codex plugin marketplace upgrade jsfwork
 ```
 
 설치된 플러그인을 확실히 새로 반영하려면 제거 후 다시 설치하고 새 Codex 세션을 시작합니다.
 
 ```powershell
-codex plugin remove jsfwork@jsfwork-marketplace
-codex plugin add jsfwork@jsfwork-marketplace
+codex plugin remove jsfwork@jsfwork
+codex plugin add jsfwork@jsfwork
 ```
 
 ### 제거
 
 ```powershell
-codex plugin remove jsfwork@jsfwork-marketplace
-codex plugin marketplace remove jsfwork-marketplace
+codex plugin remove jsfwork@jsfwork
+codex plugin marketplace remove jsfwork
 ```
 
 ## 참고
