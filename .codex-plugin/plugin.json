@@ -21,7 +21,6 @@
       "Repository implementation and QA"
     ],
     "defaultPrompt": [
-      "Use $orcheestrate-team to coordinate this implementation.",
       "Use the explore project agent to inspect this large file set and return a summary.",
       "Coordinate this change as a JSFWORK team workflow.",
       "Use $jsfwork-init to initialize this repository for JSFWORK."
