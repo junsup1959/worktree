@@ -5,7 +5,7 @@
   },
   "plugins": [
     {
-      "name": "jsfwork",
+      "name": "jswork",
       "source": {
         "source": "url",
         "url": "https://github.com/junsup1959/worktree.git",
