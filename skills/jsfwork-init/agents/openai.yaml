@@ -1,4 +1,0 @@
-interface:
-  display_name: "JSFWORK Init"
-  short_description: "Bootstrap JSFWORK and Graphify-aware project config"
-  default_prompt: "Use $jsfwork-init to initialize this repository for JSFWORK."

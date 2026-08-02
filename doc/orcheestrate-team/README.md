@@ -2,13 +2,13 @@
 
 > 상태: 개발 중 · 갱신일: 2026-07-29 · 대상: JSFWORK Skill/플러그인 유지보수자
 
-이 문서는 `orcheestrate-team`, `jsfwork-init`, 단일 `explore` 에이전트를
+이 문서는 `orcheestrate-team`, `setup`, 단일 `explore` 에이전트를
 기준으로 Codex의 Skill 발견 경로, 협업 도구의 현재 의미, 플러그인 설정의
 경계를 정리한다. 도구
 이름이나 동작을 장기 계약으로 고정하지 않으며, 실제 실행 환경의 도구 설명과
 상위 지침을 우선한다.
 
-JSFWORK의 설치·배포 식별자는 `jsfwork`, 사용자 표시명은 `JSFWORK`다.
+JSFWORK의 설치·배포 식별자는 `jswork`, 사용자 표시명은 `JSFWORK`다.
 `orcheestrate-team`은 플러그인명과 분리된 Skill 식별자다. 앞으로 추가되는
 Skill, MCP 서버, 앱, 지원 자산은 이 플러그인 아래에서 독립적인 기능 단위로
 확장한다.
@@ -32,7 +32,7 @@ plugin-root/
 │   ├── init_codex.py
 │   └── templates/codex/
 └── skills/
-    ├── jsfwork-init/
+    ├── setup/
     └── orcheestrate-team/
 ```
 
@@ -53,7 +53,7 @@ plugin-root/
 
 플러그인 manifest는 설치 대상 프로젝트의 Codex 설정이나 custom agent
 프로필을 복사하지 않는다. 다른 저장소에서 이 플러그인을 사용할 때는 사용자
-전역 설정이 아니라 프로젝트에서 `jsfwork-init`을 실행한다. 터미널에서 직접
+전역 설정이 아니라 프로젝트에서 `$jswork:setup`을 실행한다. 터미널에서 직접
 초기화할 때는 플러그인 원본 루트에서 다음 명령을 사용한다.
 
 ```powershell
@@ -82,13 +82,13 @@ Codex가 사용할 수 있는 대표적인 Skill 범위는 다음과 같다.
 
 이 저장소는 플러그인 방식으로 배포하므로
 `.codex-plugin/plugin.json`의 `"skills": "./skills/"`가
-`orcheestrate-team`과 `jsfwork-init`을 각각 독립적인 Skill로 발견 경로에
+`orcheestrate-team`과 `setup`을 각각 독립적인 Skill로 발견 경로에
 올린다. `explore`는 Skill이 아니라 프로젝트 custom agent 프로필이다.
 
 각 Skill 디렉터리에는 `SKILL.md`가 필요하다. 디렉터리명과 frontmatter의
 `name`을 일치시키고, `agents/openai.yaml`에는 표시 이름과 기본 프롬프트
-같은 UI 메타데이터만 둔다. 사용자는 `$orcheestrate-team`과
-`$jsfwork-init`을 명시적으로 선택할 수 있고, Codex는 frontmatter의 설명과
+같은 UI 메타데이터만 둔다. 사용자는 `$jswork:orcheestrate-team`과
+`$jswork:setup`을 명시적으로 선택할 수 있고, Codex는 frontmatter의 설명과
 요청이 충분히 일치할 때 암시적으로 선택할 수도 있다.
 
 ## 플러그인과 MCP
@@ -169,16 +169,16 @@ python C:\Users\junsu\.codex\skills\.system\plugin-creator\scripts\validate_plug
 ```
 
 개인 marketplace는 `$HOME/.agents/plugins/marketplace.json`을 사용하고,
-로컬 플러그인 원본은 `$HOME/plugins/jsfwork`에서 찾는다.
+로컬 플러그인 원본은 `$HOME/plugins/jswork`에서 찾는다.
 개발 원본을 이 저장소에 유지하려면 그 위치에 저장소 루트를 가리키는
 심볼릭 링크나 Windows directory junction을 둔다. marketplace 항목을
 만든 뒤에는 다음 명령으로 설치한다.
 
 ```powershell
-codex plugin add jsfwork@personal
+codex plugin add jswork@jswork
 ```
 
 설치 캐시는 원본 변경을 자동 반영한다고 가정하지 않는다. manifest나 Skill을
 수정한 뒤에는 플러그인 개발용 cachebuster/update 절차로 다시 설치하고,
-새 Codex 세션에서 `$orcheestrate-team`, `$jsfwork-init`, `explore` custom
+새 Codex 세션에서 `$jswork:orcheestrate-team`, `$jswork:setup`, `explore` custom
 agent 프로필, 팀 custom agent 프로필, MCP 도구 노출을 각각 확인한다.

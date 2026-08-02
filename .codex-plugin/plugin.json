@@ -1,12 +1,13 @@
 {
   "name": "jswork",
-  "version": "0.1.0+",
+  "version": "0.1.1",
   "description": "An extensible AX framework for team-oriented AI-assisted engineering.",
   "author": {
     "name": "junsup1959"
   },
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "JSFWORK",
     "shortDescription": "Build AX workflows with composable Codex capabilities.",
@@ -23,7 +24,7 @@
     "defaultPrompt": [
       "Use the explore project agent to inspect this large file set and return a summary.",
       "Coordinate this change as a JSFWORK team workflow.",
-      "Use $jsfwork-init to initialize this repository for JSFWORK."
+      "Use $jswork:setup to configure and verify JSWORK for this repository."
     ]
   }
 }

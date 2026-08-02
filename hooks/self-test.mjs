@@ -7,14 +7,26 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const HOOK_PATH = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "capture-learning-turn.mjs",
+const HOOK_DIR = path.dirname(fileURLToPath(import.meta.url));
+const HOOK_PATH = path.join(HOOK_DIR, "capture-learning-turn.mjs");
+const HOOKS_CONFIG_PATH = path.join(HOOK_DIR, "hooks.json");
+const PLUGIN_MANIFEST_PATH = path.join(
+  HOOK_DIR,
+  "..",
+  ".codex-plugin",
+  "plugin.json",
 );
+const PLUGIN_ROOT = path.join(HOOK_DIR, "..");
+const WINDOWS_HOOK_SCRIPT =
+  "$ProgressPreference='SilentlyContinue';$ErrorActionPreference='Stop';try{& node (Join-Path $env:PLUGIN_ROOT 'hooks\\capture-learning-turn.mjs');exit $LASTEXITCODE}catch{[Console]::Error.WriteLine($_);exit 1}";
+const WINDOWS_HOOK_COMMAND =
+  "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand " +
+  Buffer.from(WINDOWS_HOOK_SCRIPT, "utf16le").toString("base64");
 
-async function invoke(event) {
+async function invokeProcess(program, args, event, env = process.env) {
   return await new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [HOOK_PATH], {
+    const child = spawn(program, args, {
+      env,
       shell: false,
       stdio: ["pipe", "pipe", "pipe"],
       windowsHide: true,
@@ -43,6 +55,54 @@ async function invoke(event) {
   });
 }
 
+async function invoke(event) {
+  return await invokeProcess(process.execPath, [HOOK_PATH], event);
+}
+
+async function invokeThroughShell(program, args, command, event) {
+  return await invokeProcess(program, [...args, command], event, {
+    ...process.env,
+    PLUGIN_ROOT,
+  });
+}
+
+async function firstAccessible(paths) {
+  for (const candidate of paths.filter(Boolean)) {
+    try {
+      await access(candidate);
+      return candidate;
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        throw error;
+      }
+    }
+  }
+  return null;
+}
+
+const pluginManifest = JSON.parse(await readFile(PLUGIN_MANIFEST_PATH, "utf8"));
+assert.equal(pluginManifest.name, "jswork");
+assert.equal(pluginManifest.hooks, "./hooks/hooks.json");
+assert.ok(
+  pluginManifest.interface.defaultPrompt.includes(
+    "Use $jswork:setup to configure and verify JSWORK for this repository.",
+  ),
+);
+
+const hooksConfig = JSON.parse(await readFile(HOOKS_CONFIG_PATH, "utf8"));
+assert.deepEqual(
+  Object.keys(hooksConfig.hooks).sort(),
+  ["SessionEnd", "Stop", "UserPromptSubmit"].sort(),
+);
+for (const eventName of ["UserPromptSubmit", "Stop", "SessionEnd"]) {
+  const handlers = hooksConfig.hooks[eventName].flatMap((group) => group.hooks);
+  assert.equal(handlers.length, 1, eventName);
+  assert.match(handlers[0].command, /\$\{PLUGIN_ROOT\}/u, eventName);
+  assert.equal(handlers[0].commandWindows, WINDOWS_HOOK_COMMAND, eventName);
+  assert.equal(handlers[0].command.includes(".jsfwork"), false, eventName);
+  assert.equal(handlers[0].commandWindows.includes(".jsfwork"), false, eventName);
+}
+
 const projectRoot = await mkdtemp(path.join(os.tmpdir(), "learning-hook-test-"));
 
 try {
@@ -51,6 +111,59 @@ try {
     turn_id: "turn-one",
     cwd: projectRoot,
   };
+  const commandSmokeEvent = {
+    ...common,
+    hook_event_name: "Stop",
+    stop_hook_active: false,
+    last_assistant_message: "Shell portability smoke test.",
+  };
+  const stopHandler = hooksConfig.hooks.Stop[0].hooks[0];
+
+  if (process.platform === "win32") {
+    const windowsShells = [
+      ["PowerShell", "powershell.exe", ["-NoProfile", "-Command"]],
+      ["cmd.exe", process.env.ComSpec ?? "cmd.exe", ["/d", "/s", "/c"]],
+    ];
+    const gitBash = await firstAccessible([
+      process.env.ProgramFiles &&
+        path.join(process.env.ProgramFiles, "Git", "bin", "bash.exe"),
+      process.env.LOCALAPPDATA &&
+        path.join(
+          process.env.LOCALAPPDATA,
+          "Programs",
+          "Git",
+          "bin",
+          "bash.exe",
+        ),
+    ]);
+    if (gitBash) {
+      windowsShells.push([
+        "Git Bash",
+        gitBash,
+        ["--noprofile", "--norc", "-c"],
+      ]);
+    }
+
+    for (const [shellName, program, args] of windowsShells) {
+      const result = await invokeThroughShell(
+        program,
+        args,
+        stopHandler.commandWindows,
+        commandSmokeEvent,
+      );
+      assert.equal(result.stdout.trim(), "{}", shellName);
+      assert.equal(result.stderr, "", shellName);
+    }
+  } else {
+    const result = await invokeThroughShell(
+      "/bin/sh",
+      ["-c"],
+      stopHandler.command,
+      commandSmokeEvent,
+    );
+    assert.equal(result.stdout.trim(), "{}");
+    assert.equal(result.stderr, "");
+  }
 
   const promptResult = await invoke({
     ...common,
@@ -114,12 +227,20 @@ try {
     stop_hook_active: false,
     last_assistant_message: "SessionEnd should finalize this answer.",
   });
-  await invoke({
-    session_id: "session-test",
-    cwd: projectRoot,
-    hook_event_name: "SessionEnd",
-    reason: "other",
-  });
+  await Promise.all([
+    invoke({
+      session_id: "session-test",
+      cwd: projectRoot,
+      hook_event_name: "SessionEnd",
+      reason: "other",
+    }),
+    invoke({
+      session_id: "session-test",
+      cwd: projectRoot,
+      hook_event_name: "SessionEnd",
+      reason: "other",
+    }),
+  ]);
 
   const afterSessionEnd = (await readFile(candidatesPath, "utf8"))
     .trim()

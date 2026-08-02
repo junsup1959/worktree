@@ -19,7 +19,7 @@ model_verbosity = "low"
 #모델 호환성 메타데이터 = true
 #model_supports_reasoning_summaries
 #사용 가능한 문맥 크기
-#model_context_window =  128000
+#model_context_window = 128000
 model_auto_compact_token_limit = 64000
 model_auto_compact_token_limit_scope = "total"
 service_tier = "default"

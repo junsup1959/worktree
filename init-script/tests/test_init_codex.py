@@ -71,6 +71,8 @@ class InitCodexTests(unittest.TestCase):
                 generated["mcp_servers"]["sequential-thinking"]["command"],
                 "cmd",
             )
+            self.assertFalse((target / ".codex" / "hooks.json").exists())
+            self.assertFalse((target / ".jsfwork").exists())
             agent_dir = target / ".codex" / "agents"
             expected_agents = {
                 "explore": (
@@ -125,6 +127,25 @@ class InitCodexTests(unittest.TestCase):
             source.read_bytes(),
             INIT_CODEX.TEMPLATE_PATH.read_bytes(),
         )
+
+    def test_apply_preserves_existing_project_hooks(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary)
+            hooks = target / ".codex" / "hooks.json"
+            hooks.parent.mkdir()
+            original = (
+                b'{"hooks":{"PreToolUse":[{"matcher":"*",'
+                b'"hooks":[{"type":"command","command":"graphify hook-check"}]}]}}\n'
+            )
+            hooks.write_bytes(original)
+
+            applied = self.run_init(target, "--apply")
+            checked = self.run_init(target, "--check")
+
+            self.assertEqual(applied.returncode, 0, applied.stderr)
+            self.assertEqual(checked.returncode, 0, checked.stderr)
+            self.assertEqual(hooks.read_bytes(), original)
+            self.assertFalse((target / ".jsfwork").exists())
 
     def test_repository_agent_profiles_match_initializer_templates(self) -> None:
         repository_root = SCRIPT.parent.parent

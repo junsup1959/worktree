@@ -1,9 +1,10 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   appendFile,
   mkdir,
   readFile,
   readdir,
+  rename,
   unlink,
   writeFile,
 } from "node:fs/promises";
@@ -197,10 +198,10 @@ async function saveAnswerSnapshot(event, paths) {
 }
 
 async function finalizePendingFile(pendingPath, paths, sessionId) {
-  let pending;
+  const claimedPath = `${pendingPath}.${process.pid}-${randomUUID()}.claim`;
 
   try {
-    pending = JSON.parse(await readFile(pendingPath, "utf8"));
+    await rename(pendingPath, claimedPath);
   } catch (error) {
     if (error?.code === "ENOENT") {
       return;
@@ -208,41 +209,73 @@ async function finalizePendingFile(pendingPath, paths, sessionId) {
     throw error;
   }
 
+  let pending;
+  let restoreOnFailure = true;
+
+  try {
+    pending = JSON.parse(await readFile(claimedPath, "utf8"));
+  } catch (error) {
+    try {
+      await rename(claimedPath, pendingPath);
+    } catch (restoreError) {
+      if (restoreError?.code !== "ENOENT") {
+        error.cause = restoreError;
+      }
+    }
+    throw error;
+  }
+
   if (pending.session_id !== sessionId) {
+    await rename(claimedPath, pendingPath);
     return;
   }
 
-  if (
-    pending.opted_out ||
-    typeof pending.final_answer !== "string" ||
-    pending.final_answer.length === 0
-  ) {
-    await unlink(pendingPath);
-    return;
+  try {
+    if (
+      pending.opted_out ||
+      typeof pending.final_answer !== "string" ||
+      pending.final_answer.length === 0
+    ) {
+      restoreOnFailure = false;
+      await unlink(claimedPath);
+      return;
+    }
+
+    const candidate = {
+      schema_version: 1,
+      candidate_id: candidateKey(pending.session_id, pending.turn_id),
+      review_status: "unreviewed",
+      captured_at: pending.answer_captured_at,
+      original_prompt: pending.original_prompt,
+      final_answer: pending.final_answer,
+      sanitization: {
+        prompt_redactions: pending.prompt_redactions,
+        final_answer_redactions: pending.final_answer_redactions,
+        prompt_truncated: pending.prompt_truncated,
+        final_answer_truncated: pending.final_answer_truncated,
+      },
+    };
+
+    await mkdir(paths.learningDir, { recursive: true });
+    await appendFile(
+      paths.candidatesFile,
+      `${JSON.stringify(candidate)}\n`,
+      "utf8",
+    );
+    restoreOnFailure = false;
+    await unlink(claimedPath);
+  } catch (error) {
+    if (restoreOnFailure) {
+      try {
+        await rename(claimedPath, pendingPath);
+      } catch (restoreError) {
+        if (restoreError?.code !== "ENOENT") {
+          error.cause = restoreError;
+        }
+      }
+    }
+    throw error;
   }
-
-  const candidate = {
-    schema_version: 1,
-    candidate_id: candidateKey(pending.session_id, pending.turn_id),
-    review_status: "unreviewed",
-    captured_at: pending.answer_captured_at,
-    original_prompt: pending.original_prompt,
-    final_answer: pending.final_answer,
-    sanitization: {
-      prompt_redactions: pending.prompt_redactions,
-      final_answer_redactions: pending.final_answer_redactions,
-      prompt_truncated: pending.prompt_truncated,
-      final_answer_truncated: pending.final_answer_truncated,
-    },
-  };
-
-  await mkdir(paths.learningDir, { recursive: true });
-  await appendFile(
-    paths.candidatesFile,
-    `${JSON.stringify(candidate)}\n`,
-    "utf8",
-  );
-  await unlink(pendingPath);
 }
 
 async function finalizeSession(event, paths) {

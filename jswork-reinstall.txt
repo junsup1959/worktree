@@ -1,0 +1,121 @@
+JSWORK 플러그인(jswork@jswork) 재설치 안내
+============================================
+
+기준 ID
+-------
+- 플러그인 ID: jswork
+- Marketplace ID: jswork
+- 설치 selector: jswork@jswork
+- 현재 Setup Skill: $jswork:setup
+- 이전 이름인 $jswork:jsfwork-init 및 jsfwork 계열 selector는 레거시다.
+
+중요
+----
+- 아래 명령은 PowerShell에서 저장소 루트(C:\project\worktree)를 기준으로 실행한다.
+- 원하는 setup Skill 및 훅 수정 사항이 원격 main에 커밋·push된 뒤 재설치해야 한다.
+  push 전 재설치는 원격의 이전 패키지를 다시 설치할 수 있다.
+- marketplace upgrade는 Marketplace Git snapshot만 갱신한다. 설치 캐시는 갱신하지
+  않으므로 remove와 add를 모두 실행해야 한다.
+- 캐시 폴더를 직접 삭제하지 않는다.
+- 재설치 후 현재 Codex 세션을 종료하고 새 세션을 시작해야 새 Skill과 훅이 반영된다.
+
+1. 재설치 전 소스 검사
+----------------------
+다음 두 명령이 성공한 상태에서 원격 main에 변경 사항을 반영한다.
+
+  node .\hooks\self-test.mjs
+  python .\init-script\init_codex.py --target C:\project\worktree --check
+
+첫 명령의 정상 결과:
+
+  learning capture hook self-test: ok
+
+주의: 이 단계는 현재 저장소 소스와 프로젝트 설정을 검사할 뿐, 설치 캐시나 현재
+세션에서 실제 훅이 활성화됐다는 증거는 아니다.
+
+2. Codex CLI 경로 및 현재 상태 확인
+--------------------------------------
+codex.ps1 실행 정책 오류를 피하려면 Windows cmd shim을 사용한다.
+
+  $codex = Join-Path $env:APPDATA "npm\codex.cmd"
+  & $codex --version
+  & $codex plugin marketplace list --json
+  & $codex plugin list --json
+
+Marketplace 목록에 이름이 jswork인 항목이 있는지 확인한다.
+
+3. Marketplace 등록 또는 갱신
+-----------------------------
+jswork Marketplace가 목록에 없으면 등록한다.
+
+  & $codex plugin marketplace add junsup1959/worktree --ref main --json
+
+이미 있으면 원격 main snapshot을 갱신한다.
+
+  & $codex plugin marketplace upgrade jswork --json
+
+다시 확인한다.
+
+  & $codex plugin marketplace list --json
+
+목록에 jswork가 없는데 add가 이미 등록됐다고 실패하는 경우에만 Marketplace 등록을
+복구한다. 먼저 source가 junsup1959/worktree인지 확인한 뒤 다음을 실행한다.
+
+  & $codex plugin marketplace remove jswork --json
+  & $codex plugin marketplace add junsup1959/worktree --ref main --json
+
+4. 기존 플러그인 제거
+---------------------
+
+  & $codex plugin remove jswork@jswork --json
+
+"not installed"가 나오면 이미 제거된 것이므로 다음 단계로 진행한다.
+
+2단계의 plugin list 결과에 jswork@personal, jsfwork@personal 또는
+jsfwork@jsfwork 같은 레거시 설치가 실제로 표시된 경우에만, 표시된 selector를
+그대로 지정해 추가 제거한다. 추측한 selector나 캐시 경로는 삭제하지 않는다.
+
+예시(목록에 jswork@personal이 실제로 있을 때만 실행):
+
+  & $codex plugin remove jswork@personal --json
+
+5. jswork@jswork 다시 설치
+--------------------------
+설치 결과의 installedPath를 보존해 설치 캐시 자체를 검사한다.
+
+  $install = (& $codex plugin add jswork@jswork --json | ConvertFrom-Json)
+  $install | ConvertTo-Json -Depth 8
+  node (Join-Path $install.installedPath "hooks\self-test.mjs")
+  & $codex plugin list --json
+
+확인할 값:
+- pluginId 또는 selector가 jswork@jswork다.
+- name은 jswork다.
+- marketplaceName은 jswork다.
+- installed와 enabled가 true다.
+- 설치 캐시의 self-test 결과가 "learning capture hook self-test: ok"다.
+
+설치 캐시 self-test가 실패하면 새 세션을 시작하지 말고, 출력된 installedPath의
+.codex-plugin/plugin.json, hooks/hooks.json, hooks/self-test.mjs가 원격 main의
+파일과 같은지 먼저 확인한다.
+
+6. 새 세션에서 최종 확인
+------------------------
+1) 현재 Codex 세션을 완전히 종료한다.
+2) C:\project\worktree에서 새 Codex 세션을 시작한다. 기존 세션 resume은 사용하지 않는다.
+3) 새 Skill 목록에 $jswork:setup이 있고 $jswork:jsfwork-init은 없는지 확인한다.
+4) Codex 대화에서 $jswork:setup을 실행해 프로젝트 설정을 검사한다.
+5) 짧은 테스트 프롬프트를 한 번 보내고 응답을 끝낸 뒤 아래 오류가 없는지 확인한다.
+
+   UserPromptSubmit hook (failed)
+   Stop hook (failed)
+   SessionEnd hook (failed)
+   hook exited with code 1
+
+소스 self-test, 설치 캐시 self-test, 새 세션의 실제 lifecycle 이벤트가 모두 성공해야
+훅 문제가 해결된 것으로 판단한다.
+
+참고
+----
+- Codex CLI 명령 참고: https://learn.chatgpt.com/docs/developer-commands?surface=cli
+- Plugin 참고: https://learn.chatgpt.com/docs/plugins

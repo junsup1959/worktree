@@ -60,7 +60,7 @@ After installing or updating the JSFWORK plugin, open the target repository and
 ask Codex:
 
 ```text
-Use $jsfwork-init to initialize this repository for JSFWORK.
+Use $jswork:setup to configure and verify JSWORK for this repository.
 ```
 
 The skill resolves the current project to
@@ -156,7 +156,7 @@ remove or reconcile them explicitly after adopting the shared developer
 profile. Preview, `--apply`, and `--check` emit a non-failing reconciliation
 warning while either legacy file remains.
 
-The reference file at `skills/jsfwork-init/assets/AGENTS.md` shows the expected
+The reference file at `skills/setup/assets/AGENTS.md` shows the expected
 native Graphify guidance. Do not copy or merge it into a project directly;
 `graphify codex install` performs the idempotent update and preserves the
 native ownership boundary.
@@ -166,6 +166,14 @@ JSFWORK plugin may be discovered through the personal marketplace, while this
 workflow writes only the selected project's JSFWORK configuration and profiles,
 plus the native Graphify Codex files when that project already enabled
 Graphify.
+
+Hook registration follows the same boundary. The installed `jswork` package
+registers its learning hooks through `.codex-plugin/plugin.json` and
+`hooks/hooks.json`; the initializer never copies those handlers into the target
+project's `.codex/hooks.json` and never creates `.jsfwork`. Setting
+`features.hooks = true` only enables hook support. In this workflow, any
+project-local `.codex/hooks.json` entry is preserved, and Graphify alone owns
+its `PreToolUse` `hook-check` registration.
 
 An existing `features.multi_agent = false` or `features.hooks = false` is
 treated as an explicit repository decision and is not overwritten. Override

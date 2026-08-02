@@ -1,15 +1,15 @@
 ---
-name: jsfwork-init
-description: Safely initialize or verify repository-local Codex configuration required by the JSFWORK plugin, including native Codex integration when Graphify is already enabled for the project. Use when a user asks to initialize, configure, install, enable, check, or repair JSFWORK for the current repository after plugin installation.
+name: setup
+description: Safely initialize or verify repository-local Codex configuration required by the jswork plugin, including package-hook integrity and native Codex integration when Graphify is already enabled for the project. Use when a user asks to set up, initialize, configure, install, enable, check, or repair jswork for the current repository after plugin installation.
 ---
 
-# JSFWORK Init
+# JSWORK Setup
 
 ## Overview
 
 Configure the repository-local Codex defaults and custom agent profiles
-required by JSFWORK. For a project without `.codex/config.toml`, create the
-canonical configuration packaged at
+required by the `jswork` plugin. For a project without `.codex/config.toml`,
+create the canonical configuration packaged at
 `<plugin-root>/init-script/templates/codex/config.toml`. It mirrors this plugin
 source repository's project configuration; it is not the developer's global
 configuration. The template includes `features.hooks = true`. For an existing
@@ -21,8 +21,50 @@ initialization mode.
 When Graphify is already enabled for the target project, compose with its
 native `graphify codex install` command. That command owns the Graphify section
 in the repository-root `AGENTS.md` and the Graphify registration in
-`.codex/hooks.json`. Do not duplicate its merge behavior in the JSFWORK Python
+`.codex/hooks.json`. Do not duplicate its merge behavior in the JSWORK Python
 initializer.
+
+Keep three hook surfaces separate:
+
+- The installed `jswork` package declares `hooks/hooks.json` through
+  `.codex-plugin/plugin.json`. Codex loads these plugin hooks; never copy them
+  into a target repository.
+- `features.hooks = true` in `<target-project>/.codex/config.toml` enables hook
+  support but does not register a hook or create `.codex/hooks.json`.
+- Only Graphify may add its project-local `PreToolUse` `hook-check` entry to
+  `<target-project>/.codex/hooks.json` in this workflow.
+
+## Hook Ownership Guard
+
+Before changing the target project, verify the installed package from the
+resolved plugin root:
+
+1. `.codex-plugin/plugin.json` has `name` set to `jswork` and `hooks` set to
+   `./hooks/hooks.json`.
+2. `hooks/hooks.json` exists and its JSWORK learning handlers use
+   `${PLUGIN_ROOT}` on POSIX. Each Windows handler must use the package's
+   shell-neutral `powershell.exe -EncodedCommand` launcher. Its decoded script
+   resolves `$env:PLUGIN_ROOT` inside that nested PowerShell process and
+   propagates Node's exit code. Never put `%PLUGIN_ROOT%`, `${PLUGIN_ROOT}`, or
+   `$env:PLUGIN_ROOT` directly in the raw Windows command: Codex runs hook
+   commands through the active session shell, which may be PowerShell, cmd.exe,
+   or Git Bash.
+3. Run the package self-test when Node.js is available:
+
+   ```powershell
+   node "<plugin-root>\hooks\self-test.mjs"
+   ```
+
+If package validation fails, report the plugin installation as incomplete and
+stop. Never compensate by copying `hooks/hooks.json` or registering
+`capture-learning-turn.mjs` in the target project's `.codex/hooks.json`.
+
+Inspect an existing `<target-project>/.codex/hooks.json` read-only. Treat any
+`UserPromptSubmit`, `Stop`, or `SessionEnd` handler for
+`capture-learning-turn.mjs`, `${PLUGIN_ROOT}`, `%PLUGIN_ROOT%`, or
+`$env:PLUGIN_ROOT` there as a misconfigured duplicate plugin hook. Report its
+exact location and do not add another hook. Do not delete or rewrite it without
+an explicit repair request.
 
 ## Permission Boundary
 
@@ -45,7 +87,7 @@ initializer.
 1. Resolve the plugin root as two directories above this `SKILL.md`, then use
    `<plugin-root>/init-script/init_codex.py`.
 2. Treat the current working directory as the target project unless the user
-   named another project. The JSFWORK initializer destinations must always
+   named another project. The JSWORK initializer destinations must always
    resolve under
    `<target-project>/.codex/`: `config.toml`, the single `explore` profile, and
    three `orcheestrate-team` role profiles under `agents/`. Reject the user home
@@ -58,7 +100,7 @@ initializer.
    `graphify-out/graph.json`, or an existing `## graphify` section in
    `AGENTS.md`. A globally available CLI alone does not opt every project into
    Graphify. If Graphify is not enabled, skip its integration without failing
-   JSFWORK initialization. If the user explicitly asked to install Graphify
+   JSWORK initialization. If the user explicitly asked to install Graphify
    itself, treat `graphify install --project --platform codex` as a separate
    requested action.
 4. Run the initializer without `--apply` first and inspect its preview:
@@ -75,8 +117,8 @@ initializer.
    `graphify codex install` because it has no read-only preview mode. Inspect
    `AGENTS.md` and `.codex/hooks.json` read-only instead.
 6. If the user asked to initialize, configure, enable, install, or repair
-   JSFWORK, ask the Codex host for permission limited to the exact applicable
-   writes. Run the JSFWORK apply command when its preview contains a change:
+   JSWORK, ask the Codex host for permission limited to the exact applicable
+   writes. Run the JSWORK apply command when its preview contains a change:
 
    ```powershell
    python "<plugin-root>\init-script\init_codex.py" --target "<target-project>" --apply
@@ -111,7 +153,7 @@ initializer.
    them to run the commands from a regular PowerShell terminal outside the
    Codex sandbox. Resume read-only verification only after they confirm
    completion.
-8. Run `--check` after a successful JSFWORK apply and report the exact
+8. Run `--check` after a successful JSWORK apply and report the exact
    configuration path:
 
    ```powershell
@@ -128,8 +170,9 @@ initializer.
    - `.codex/hooks.json` preserves unrelated hooks and includes a `PreToolUse`
      command whose executable-specific prefix may vary but whose command ends
      in `hook-check`.
-   If JSFWORK `--check` passes but this Graphify verification fails, report
-   JSFWORK as configured and Graphify integration as incomplete. Do not collapse
+   - no JSWORK learning hook handler was copied into `.codex/hooks.json`.
+   If JSWORK `--check` passes but this Graphify verification fails, report
+   JSWORK as configured and Graphify integration as incomplete. Do not collapse
    the two states into a generic initialization success or failure.
 10. Tell the user to start a new Codex session in the repository so project-local
    configuration is loaded.
@@ -144,9 +187,9 @@ the repository is ready, do not apply changes. Use preview or `--check`.
   Graphify-specific merge. It is a reference sample of the expected native
   Graphify guidance only.
 - Let `graphify codex install` own its `AGENTS.md` section and
-  `.codex/hooks.json` entry. Do not add a duplicate JSFWORK-managed Graphify
+  `.codex/hooks.json` entry. Do not add a duplicate JSWORK-managed Graphify
   section or hook.
-- Do not treat absent Graphify integration as a JSFWORK failure when the target
+- Do not treat absent Graphify integration as a JSWORK failure when the target
   project did not enable Graphify.
 - Never edit a user-global Codex configuration.
 - Never use the user home directory, a filesystem root, or `CODEX_HOME` as a
@@ -189,7 +232,7 @@ Sequential Thinking MCP, and the source repository's model, sandbox, tool,
 memory, agent, application, shell-environment, and feature defaults.
 
 For a target with an existing valid configuration, its prior settings and
-comments remain intact. In both cases the effective JSFWORK-required value is:
+comments remain intact. In both cases the effective JSWORK-required value is:
 
 ```toml
 [features]

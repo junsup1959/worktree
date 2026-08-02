@@ -7,7 +7,7 @@
           {
             "type": "command",
             "command": "node \"${PLUGIN_ROOT}/hooks/capture-learning-turn.mjs\"",
-            "commandWindows": "node \"%PLUGIN_ROOT%\\hooks\\capture-learning-turn.mjs\"",
+            "commandWindows": "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand JABQAHIAbwBnAHIAZQBzAHMAUAByAGUAZgBlAHIAZQBuAGMAZQA9ACcAUwBpAGwAZQBuAHQAbAB5AEMAbwBuAHQAaQBuAHUAZQAnADsAJABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQA9ACcAUwB0AG8AcAAnADsAdAByAHkAewAmACAAbgBvAGQAZQAgACgASgBvAGkAbgAtAFAAYQB0AGgAIAAkAGUAbgB2ADoAUABMAFUARwBJAE4AXwBSAE8ATwBUACAAJwBoAG8AbwBrAHMAXABjAGEAcAB0AHUAcgBlAC0AbABlAGEAcgBuAGkAbgBnAC0AdAB1AHIAbgAuAG0AagBzACcAKQA7AGUAeABpAHQAIAAkAEwAQQBTAFQARQBYAEkAVABDAE8ARABFAH0AYwBhAHQAYwBoAHsAWwBDAG8AbgBzAG8AbABlAF0AOgA6AEUAcgByAG8AcgAuAFcAcgBpAHQAZQBMAGkAbgBlACgAJABfACkAOwBlAHgAaQB0ACAAMQB9AA==",
             "timeout": 5
           }
         ]
@@ -19,7 +19,7 @@
           {
             "type": "command",
             "command": "node \"${PLUGIN_ROOT}/hooks/capture-learning-turn.mjs\"",
-            "commandWindows": "node \"%PLUGIN_ROOT%\\hooks\\capture-learning-turn.mjs\"",
+            "commandWindows": "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand JABQAHIAbwBnAHIAZQBzAHMAUAByAGUAZgBlAHIAZQBuAGMAZQA9ACcAUwBpAGwAZQBuAHQAbAB5AEMAbwBuAHQAaQBuAHUAZQAnADsAJABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQA9ACcAUwB0AG8AcAAnADsAdAByAHkAewAmACAAbgBvAGQAZQAgACgASgBvAGkAbgAtAFAAYQB0AGgAIAAkAGUAbgB2ADoAUABMAFUARwBJAE4AXwBSAE8ATwBUACAAJwBoAG8AbwBrAHMAXABjAGEAcAB0AHUAcgBlAC0AbABlAGEAcgBuAGkAbgBnAC0AdAB1AHIAbgAuAG0AagBzACcAKQA7AGUAeABpAHQAIAAkAEwAQQBTAFQARQBYAEkAVABDAE8ARABFAH0AYwBhAHQAYwBoAHsAWwBDAG8AbgBzAG8AbABlAF0AOgA6AEUAcgByAG8AcgAuAFcAcgBpAHQAZQBMAGkAbgBlACgAJABfACkAOwBlAHgAaQB0ACAAMQB9AA==",
             "timeout": 5
           }
         ]
@@ -31,7 +31,7 @@
           {
             "type": "command",
             "command": "node \"${PLUGIN_ROOT}/hooks/capture-learning-turn.mjs\"",
-            "commandWindows": "node \"%PLUGIN_ROOT%\\hooks\\capture-learning-turn.mjs\"",
+            "commandWindows": "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand JABQAHIAbwBnAHIAZQBzAHMAUAByAGUAZgBlAHIAZQBuAGMAZQA9ACcAUwBpAGwAZQBuAHQAbAB5AEMAbwBuAHQAaQBuAHUAZQAnADsAJABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQA9ACcAUwB0AG8AcAAnADsAdAByAHkAewAmACAAbgBvAGQAZQAgACgASgBvAGkAbgAtAFAAYQB0AGgAIAAkAGUAbgB2ADoAUABMAFUARwBJAE4AXwBSAE8ATwBUACAAJwBoAG8AbwBrAHMAXABjAGEAcAB0AHUAcgBlAC0AbABlAGEAcgBuAGkAbgBnAC0AdAB1AHIAbgAuAG0AagBzACcAKQA7AGUAeABpAHQAIAAkAEwAQQBTAFQARQBYAEkAVABDAE8ARABFAH0AYwBhAHQAYwBoAHsAWwBDAG8AbgBzAG8AbABlAF0AOgA6AEUAcgByAG8AcgAuAFcAcgBpAHQAZQBMAGkAbgBlACgAJABfACkAOwBlAHgAaQB0ACAAMQB9AA==",
             "timeout": 3
           }
         ]

@@ -4,8 +4,8 @@ JSFWORK는 Codex에서 프로젝트 단위의 AX 워크플로를 구성하기 �
 
 ## 플러그인 구성
 
-- 플러그인 이름: `jsfwork`
-- 현재 버전: `0.1.0+codex.20260728161304`
+- 플러그인 이름: `jswork`
+- 현재 버전: `0.1.1`
 - 플러그인 매니페스트: `.codex-plugin/plugin.json`
 - Skill: `skills/`
 - MCP 설정: `.mcp.json`
@@ -23,21 +23,21 @@ Codex가 이 저장소를 marketplace로 인식하려면 저장소에 다음 파
 .agents/plugins/marketplace.json
 ```
 
-현재 플러그인은 GitHub 저장소 루트에 있으므로 다음 내용으로 파일을 만듭니다.
+현재 플러그인은 GitHub 저장소 루트에 있으며 카탈로그는 다음과 같이 구성되어 있습니다.
 
 ```json
 {
-  "name": "jsfwork",
+  "name": "jswork",
   "interface": {
     "displayName": "JSFWORK Marketplace"
   },
   "plugins": [
     {
-      "name": "jsfwork",
+      "name": "jswork",
       "source": {
         "source": "url",
         "url": "https://github.com/junsup1959/worktree.git",
-        "ref": "master"
+        "ref": "main"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -49,9 +49,7 @@ Codex가 이 저장소를 marketplace로 인식하려면 저장소에 다음 파
 }
 ```
 
-파일을 추가한 뒤 `master` 브랜치에 커밋하고 GitHub로 push합니다. 기본 브랜치를 변경했다면 JSON의 `ref`와 아래 명령의 `--ref`도 같은 브랜치 이름으로 변경합니다.
-
-> 현재 저장소에는 `.codex-plugin/plugin.json`은 있지만 `.agents/plugins/marketplace.json`은 아직 없습니다. 아래 설치 명령은 marketplace 카탈로그를 커밋하고 push한 뒤 사용해야 합니다.
+카탈로그와 플러그인 변경을 `main` 브랜치에 커밋하고 GitHub로 push합니다. 기본 브랜치를 변경했다면 JSON의 `ref`와 아래 명령의 `--ref`도 같은 브랜치 이름으로 변경합니다.
 
 ### 2. Marketplace 등록
 
@@ -70,7 +68,7 @@ codex plugin marketplace list
 ### 3. JSFWORK 플러그인 설치
 
 ```powershell
-codex plugin add jsfwork@jsfwork
+codex plugin add jswork@jswork
 ```
 
 설치 결과를 확인합니다.
@@ -86,8 +84,8 @@ Codex CLI에서는 `/plugins`를 입력해 플러그인 브라우저에서도 �
 `codex.ps1` 실행이 차단되면 Windows의 `codex.cmd`를 직접 호출합니다.
 
 ```powershell
-& "$env:APPDATA\npm\codex.cmd" plugin marketplace add junsup1959/worktree --ref master
-& "$env:APPDATA\npm\codex.cmd" plugin add jsfwork@jsfwork
+& "$env:APPDATA\npm\codex.cmd" plugin marketplace add junsup1959/worktree --ref main
+& "$env:APPDATA\npm\codex.cmd" plugin add jswork@jswork
 ```
 
 ### Marketplace 업데이트
@@ -95,25 +93,24 @@ Codex CLI에서는 `/plugins`를 입력해 플러그인 브라우저에서도 �
 GitHub에 새 버전을 push한 뒤 marketplace snapshot을 갱신합니다.
 
 ```powershell
-codex plugin marketplace upgrade jsfwork
+codex plugin marketplace upgrade jswork
 ```
 
 설치된 플러그인을 확실히 새로 반영하려면 제거 후 다시 설치하고 새 Codex 세션을 시작합니다.
 
 ```powershell
-codex plugin remove jsfwork@jsfwork
-codex plugin add jsfwork@jsfwork
+codex plugin remove jswork@jswork
+codex plugin add jswork@jswork
 ```
 
 ### 제거
 
 ```powershell
-codex plugin remove jsfwork@jsfwork
-codex plugin marketplace remove jsfwork
+codex plugin remove jswork@jswork
+codex plugin marketplace remove jswork
 ```
 
 ## 참고
 
 - [OpenAI 공식 Plugin 패키징 및 Marketplace 문서](https://developers.openai.com/plugins/build/plugins)
 - [OpenAI Plugin 아키텍처](https://developers.openai.com/plugins/concepts/plugins)
-
