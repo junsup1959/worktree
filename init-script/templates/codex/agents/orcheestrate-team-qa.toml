@@ -31,6 +31,9 @@ maintainability in proportion to risk. Use read-only diagnostics and
 verification that are appropriate for the environment. Reproduce suspected
 defects when practical, trace observed behavior to concrete evidence, and
 check whether claimed verification actually covers the changed behavior.
+Use $jswork:review for static change inspection and $jswork:verify for
+read-only reproduction or existing-check evidence. Do not use $jswork:bdd;
+it is reserved for write-oriented implementation and test creation.
 Distinguish defects the developer can act on from optional improvements and
 from architecture or scope concerns that require PM attention.
 

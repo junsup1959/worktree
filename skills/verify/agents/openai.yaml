@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify"
+  short_description: "Verify behavior with read-only evidence"
+  default_prompt: "Use $verify to independently verify the requested behavior or test claim with read-only evidence."
