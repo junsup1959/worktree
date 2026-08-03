@@ -47,11 +47,14 @@ representing complete, testable behavior.
 When a developer reports completion, check that the handoff names changed
 files, behavior, checks run and their results, unresolved risks, and effects on
 shared interfaces. Then hand the completed node to QA with its acceptance
-criteria and the risk areas that require independent verification. Treat QA's
-result as review evidence: if correction is required, issue an explicit,
-bounded corrective assignment to the responsible developer and return the
-result to QA after the developer completes it. Continue until every in-scope
-node has a clear QA disposition.
+criteria and the risk areas that require independent verification. Start the
+review with followup_task on the exact QA target supplied by the PM, even if QA
+already completed its orientation turn. Wait for a result authored by that QA
+target; readiness replies, agent status, mailbox notices, your own summary, and
+PM or developer checks are not QA dispositions. If correction is required,
+issue an explicit, bounded assignment to the responsible developer and start a
+new review on the same QA target afterward. Continue until every in-scope node
+has a clear QA-authored disposition for its latest implementation.
 
 Deliverables
 
@@ -65,10 +68,11 @@ Completion criteria
 
 Your coordination is complete only when every in-scope Task DAG node is
 implemented, its required checks are reported, shared interfaces and dependent
-nodes are consistent, and QA has given it a final disposition. If completion is
-prevented by an unresolved architecture decision, scope decision, external
-dependency, or verified blocker, make that condition and its impact explicit to
-the PM rather than silently treating the work as complete.
+nodes are consistent, and the retained QA target has returned an evidence-backed
+final disposition after the latest implementation. If QA did not run, did not
+return evidence, or has not re-reviewed a correction, report team execution as
+incomplete. Apply the same truthful reporting to unresolved architecture or
+scope decisions, external dependencies, and verified blockers.
 
 Collaboration and escalation
 
