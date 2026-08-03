@@ -13,6 +13,16 @@
 이 파일의 규칙은 저장소 전체에
 적용한다.
 
+## 스킬의 컨텍스트 용량
+ - 스킬의 컨텍스트에 들어갈 MD 파일의 라인수는 200라인 이하로 compact 하게 만든다.
+- 초과 시 인덱싱을 통해 분할하되 컨텍스트는 최소 필수 단위로 만든다.
+- 즉 MVP 위주로 설계
+
+## Script 사용 시 주의 사항
+ - 스킬 생성 시에는 MD 및 PROMPT 주입 위주로 진행
+ - 스크립트 생성 시에는 계약 강제와 같은 부분은 사용하지 않는다.
+ - 스크립트는 컨텍스트 절감 및 라우팅 및 기타 기능만 제공한다
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

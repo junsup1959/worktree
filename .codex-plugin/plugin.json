@@ -9,9 +9,9 @@
   "mcpServers": "./.mcp.json",
   "hooks": "./hooks/hooks.json",
   "interface": {
-    "displayName": "JSFWORK",
+    "displayName": "JSWORK",
     "shortDescription": "Build AX workflows with composable Codex capabilities.",
-    "longDescription": "JSFWORK is an extensible AX framework for Codex. It combines approval-aware project initialization, a reusable large-scope exploration agent, and a five-role implementation team with role-specific project agents.",
+    "longDescription": "JSWORK is an extensible AX framework for Codex. It combines approval-aware project initialization, a reusable large-scope exploration agent, and a five-role implementation team with role-specific project agents.",
     "developerName": "junsup1959",
     "category": "Productivity",
     "capabilities": [
