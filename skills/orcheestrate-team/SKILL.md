@@ -24,10 +24,10 @@ Create exactly four subagents with stable task names and retain every returned t
 
 | Role | Custom agent profile | Model | Reasoning effort | Sandbox |
 | --- | --- | --- | --- | --- |
-| PL | `orcheestrate-team-pl` | `gpt-5.4` | `high` | `read-only` |
-| Developer 1 | `orcheestrate-team-developer` | `gpt-5.3-codex-spark` | `medium` | `workspace-write` |
-| Developer 2 | `orcheestrate-team-developer` | `gpt-5.3-codex-spark` | `medium` | `workspace-write` |
-| QA | `orcheestrate-team-qa` | `gpt-5.4` | `high` | `read-only` |
+| PL | `orcheestrate-team-pl` | `gpt-5.6-luna` | `high` | `read-only` |
+| Developer 1 | `orcheestrate-team-developer` | `gpt-5.6-terra` | `medium` | `workspace-write` |
+| Developer 2 | `orcheestrate-team-developer` | `gpt-5.6-terra` | `medium` | `workspace-write` |
+| QA | `orcheestrate-team-qa` | `gpt-5.6-luna` | `high` | `read-only` |
 
 Spawn the shared developer profile twice with distinct stable task names and identity prompts. If the runtime only permits model overrides, state the fallback honestly; never claim a profile or sandbox that was not applied. Treat active runtime permissions as authoritative.
 

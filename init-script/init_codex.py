@@ -27,17 +27,17 @@ REQUIRED_AGENT_PROFILES = {
         "sandbox_mode": "workspace-write",
     },
     "orcheestrate-team-pl": {
-        "model": "gpt-5.4",
+        "model": "gpt-5.6-luna",
         "model_reasoning_effort": "high",
         "sandbox_mode": "read-only",
     },
     "orcheestrate-team-developer": {
-        "model": "gpt-5.3-codex-spark",
+        "model": "gpt-5.6-terra",
         "model_reasoning_effort": "medium",
         "sandbox_mode": "workspace-write",
     },
     "orcheestrate-team-qa": {
-        "model": "gpt-5.4",
+        "model": "gpt-5.6-luna",
         "model_reasoning_effort": "high",
         "sandbox_mode": "read-only",
     },

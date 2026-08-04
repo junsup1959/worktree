@@ -81,17 +81,17 @@ class InitCodexTests(unittest.TestCase):
                     "workspace-write",
                 ),
                 "orcheestrate-team-pl": (
-                    "gpt-5.4",
+                    "gpt-5.6-luna",
                     "high",
                     "read-only",
                 ),
                 "orcheestrate-team-developer": (
-                    "gpt-5.3-codex-spark",
+                    "gpt-5.6-terra",
                     "medium",
                     "workspace-write",
                 ),
                 "orcheestrate-team-qa": (
-                    "gpt-5.4",
+                    "gpt-5.6-luna",
                     "high",
                     "read-only",
                 ),

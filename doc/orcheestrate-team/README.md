@@ -130,10 +130,10 @@ MCP 등록은 도구를 사용할 수 있게 할 뿐, 모든 요청에서 그 �
 
 | 역할 | custom agent 프로필 | 모델 | 추론 강도 | 기본 sandbox |
 | --- | --- | --- | --- | --- |
-| PL | `orcheestrate-team-pl` | `gpt-5.4` | `high` | `read-only` |
-| Developer 1 | `orcheestrate-team-developer` | `gpt-5.3-codex-spark` | `medium` | `workspace-write` |
-| Developer 2 | `orcheestrate-team-developer` | `gpt-5.3-codex-spark` | `medium` | `workspace-write` |
-| QA | `orcheestrate-team-qa` | `gpt-5.4` | `high` | `read-only` |
+| PL | `orcheestrate-team-pl` | `gpt-5.6-luna` | `high` | `read-only` |
+| Developer 1 | `orcheestrate-team-developer` | `gpt-5.6-terra` | `medium` | `workspace-write` |
+| Developer 2 | `orcheestrate-team-developer` | `gpt-5.6-terra` | `medium` | `workspace-write` |
+| QA | `orcheestrate-team-qa` | `gpt-5.6-luna` | `high` | `read-only` |
 
 custom agent 프로필은 재사용 가능한 역할 설정 계층이며, 팀 구성원의 실행
 식별자 자체가 아니다. 오케스트레이터는 동일한 developer 프로필로 두 세션을

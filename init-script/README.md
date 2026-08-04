@@ -36,9 +36,9 @@ file designated by the caller. Its instructions prohibit Codex memory use and
 all other filesystem mutations. When one session is insufficient, the main
 thread may spawn several sessions from this one profile.
 
-The team PL and QA request `gpt-5.4` with high reasoning effort and a read-only
+The team PL and QA request `gpt-5.6-luna` with high reasoning effort and a read-only
 sandbox. The reusable team developer profile requests
-`gpt-5.3-codex-spark` with medium reasoning effort and a `workspace-write`
+`gpt-5.6-terra` with medium reasoning effort and a `workspace-write`
 sandbox. The orchestrator spawns two sessions from that one profile; each
 spawn's initial prompt and stable task name assign its Developer 1 or Developer
 2 runtime identity. Skills must record the actual model or runtime override

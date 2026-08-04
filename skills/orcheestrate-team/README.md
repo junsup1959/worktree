@@ -55,9 +55,9 @@ Developer 1과 Developer 2의 런타임 정체성을 구분한다.
 
 | 역할 | 모델 | 추론 강도 |
 | --- | --- | --- |
-| PL | `gpt-5.4` | `high` |
-| Developer 1·2 | `gpt-5.3-codex-spark` | `medium` |
-| QA | `gpt-5.4` | `high` |
+| PL | `gpt-5.6-luna` | `high` |
+| Developer 1·2 | `gpt-5.6-terra` | `medium` |
+| QA | `gpt-5.6-luna` | `high` |
 
 이 값은 저장소의 사용자 정의 에이전트 프로필에 기록된 선호 설정이다. 실제
 실행 환경이 모델, 추론 강도 또는 샌드박스 설정을 재정의하면 런타임 설정이

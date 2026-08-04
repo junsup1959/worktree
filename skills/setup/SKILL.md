@@ -249,8 +249,8 @@ session is insufficient for the assigned scope.
 
 The same directory has `orcheestrate-team-pl`,
 `orcheestrate-team-developer`, and `orcheestrate-team-qa`. PL and QA request
-`gpt-5.4`, high reasoning effort, and a read-only sandbox. The reusable
-developer profile requests `gpt-5.3-codex-spark`, medium reasoning effort, and
+`gpt-5.6-luna`, high reasoning effort, and a read-only sandbox. The reusable
+developer profile requests `gpt-5.6-terra`, medium reasoning effort, and
 a `workspace-write` sandbox.
 
 The orchestrator uses the shared developer profile for two separate spawned

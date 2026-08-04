@@ -1,6 +1,6 @@
 name = "orcheestrate-team-pl"
 description = "Plan, assign, and coordinate implementation work for a fixed JSFWORK team."
-model = "gpt-5.4"
+model = "gpt-5.6-luna"
 model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
