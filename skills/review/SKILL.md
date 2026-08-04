@@ -44,6 +44,14 @@ point is ambiguous or behavior requirements matter. Read
 [references/review-mvp.md](references/review-mvp.md) only when domain signals
 such as UI, privacy, localization, observability, or dependencies are relevant.
 
+Before deep inspection, build a compact Coverage Manifest from the selected
+mode. Inventory the in-scope files or changes and any relevant presence,
+deletion, rename, binary, generated, symlink, or permission markers without
+deep-reading every file. Mark unknown or unavailable areas explicitly. Use the
+manifest to prioritize public interfaces, callers, tests, configuration, and
+failure paths; it is a coverage boundary, not evidence that every item was
+fully reviewed.
+
 Keep a short working note when it helps focus attention:
 
 ```yaml
@@ -53,6 +61,7 @@ baseline: HEAD and repository behavior
 intent: preserve CLI output while adding JSON mode
 acceptance: existing text tests pass and JSON has the documented schema
 focus: changed public API and failure paths
+coverage: 4 changed text files; 1 generated artifact not inspected
 limits: untracked binary contents not inspected
 ```
 
@@ -94,8 +103,16 @@ consistent. Lead with findings, ordered by user impact. Give a precise file and
 line when available, then explain the violated intent, trigger, impact, evidence,
 and verification concisely. Adapt the presentation to the request and evidence.
 
-State the review contract, baseline, inspected scope, and material limitations
-briefly. If no mismatch or defect survives validation, say that none was found
-in the inspected scope; do not claim fulfillment of unavailable requirements or
-imply that the entire codebase is defect-free. Never claim that a check ran or
-passed without current evidence.
+Report an intent status for each material requirement as `satisfied`,
+`mismatched`, or `unverified`; use `partially satisfied` when the evidence is
+mixed. Tie each status to implementation and verification evidence. Do not hide
+a requirement-level mismatch inside an aggregate completion statement. Derive
+an overall user-intent status from those requirement-level results rather than
+from task completion or test success alone.
+
+State the review contract, baseline, Coverage Manifest, inspected scope, and
+material limitations briefly. If no mismatch or defect survives validation,
+say that none was found in the inspected scope and name the supporting checks;
+do not claim fulfillment of unavailable requirements or imply that the entire
+codebase is defect-free. Never claim that a check ran or passed without current
+evidence.

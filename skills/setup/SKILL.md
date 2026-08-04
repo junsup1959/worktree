@@ -66,6 +66,32 @@ Inspect an existing `<target-project>/.codex/hooks.json` read-only. Treat any
 exact location and do not add another hook. Do not delete or rewrite it without
 an explicit repair request.
 
+## Reflection Audit
+
+Initialization and plugin activation are separate evidence surfaces. Before
+claiming that recent changes are reflected, report these states independently:
+
+- **Source package:** the changed files and checks in the source checkout.
+- **Project state:** `.codex/config.toml` and the four agent profiles generated
+  from the resolved plugin root. Run `init_codex.py --check`; for the JSWORK
+  source repository, also compare its project profiles and configuration with
+  the packaged templates.
+- **Installed package:** the exact resolved `<plugin-root>` used by this Skill.
+  When the target is a JSWORK source checkout but that root is an installed
+  cache elsewhere, compare the requested changed package files across both
+  roots. A content mismatch means the installed package is stale even when the
+  manifest version or marketplace metadata matches.
+- **Active session:** a new Codex session after project apply or package refresh.
+  Do not claim that the current session reloaded changed Skills or profiles.
+
+The initializer never copies plugin Skills, manifests, hooks, or documentation
+into a target and never refreshes the installed plugin cache. Its `--check`
+proves only the project configuration and agent-profile state. Do not install,
+update, reinstall, or edit cache content without an explicit user request. If
+source, project, installed-package, or session evidence is missing or differs,
+name the incomplete layer and the exact next action instead of reporting a
+generic setup success.
+
 ## Permission Boundary
 
 - A Skill supplies instructions; it does not receive filesystem privileges.
@@ -174,8 +200,10 @@ an explicit repair request.
    If JSWORK `--check` passes but this Graphify verification fails, report
    JSWORK as configured and Graphify integration as incomplete. Do not collapse
    the two states into a generic initialization success or failure.
-10. Tell the user to start a new Codex session in the repository so project-local
-   configuration is loaded.
+10. Perform the Reflection Audit and report source, project, installed-package,
+    and active-session status separately.
+11. Tell the user to start a new Codex session in the repository after a project
+    apply or package refresh so changed configuration and Skills are loaded.
 
 If the user only asks what would change, how initialization works, or whether
 the repository is ready, do not apply changes. Use preview or `--check`.
@@ -262,3 +290,7 @@ the fixed roster, task assignment, coordination, and review flow.
 When Graphify was already enabled for the target, its native Codex integration
 also leaves one managed Graphify guidance section in root `AGENTS.md` and one
 compatible `PreToolUse` `hook-check` registration in `.codex/hooks.json`.
+
+The final setup report distinguishes source, project, installed-package, and
+active-session evidence. A passing initializer check is never reported as
+proof that changed plugin Skill content is installed or active.

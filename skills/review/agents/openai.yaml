@@ -1,4 +1,4 @@
 interface:
   display_name: "Review"
   short_description: "Verify intent and find evidence-backed defects"
-  default_prompt: "Use $review to verify that the code matches the user's stated intent and acceptance criteria, then report evidence-backed defects and limitations."
+  default_prompt: "Use $review to build a compact coverage manifest, report each material requirement's intent status, and identify evidence-backed defects and limitations."

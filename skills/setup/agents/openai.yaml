@@ -1,4 +1,4 @@
 interface:
   display_name: "JSWORK Setup"
   short_description: "Set up jswork with safe project hook boundaries"
-  default_prompt: "Use $jswork:setup to configure and verify jswork for this repository."
+  default_prompt: "Use $jswork:setup to configure jswork and verify project, installed-package, and session reflection for this repository."

@@ -125,10 +125,111 @@ class InitCodexTests(unittest.TestCase):
                     instructions = profile["developer_instructions"]
                     self.assertRegex(instructions, r"Final Completion\s+Audit")
                     self.assertIn("whole-change audit disposition", instructions)
+                    self.assertIn("Use send_message", instructions)
+                    self.assertIn("type, node, intent, and data", instructions)
+                    self.assertRegex(
+                        instructions,
+                        r"build, validate,\s+route, persist, or enforce packets",
+                    )
+                    self.assertIn("resolved BDD guide path", instructions)
+                    self.assertIn("never send both", instructions)
+                if agent_name == "orcheestrate-team-developer":
+                    instructions = profile["developer_instructions"]
+                    self.assertIn("Use send_message", instructions)
+                    self.assertIn("type, node, intent, and data", instructions)
+                    self.assertRegex(
+                        instructions,
+                        r"build, validate,\s+route, persist, or enforce packets",
+                    )
                 if agent_name == "orcheestrate-team-qa":
                     instructions = profile["developer_instructions"]
                     self.assertRegex(instructions, r"Final Completion\s+Audit")
                     self.assertIn("original user request", instructions)
+                    self.assertIn("Use send_message", instructions)
+                    self.assertIn("type, node, intent, and data", instructions)
+                    self.assertRegex(
+                        instructions,
+                        r"build, validate,\s+route, persist, or enforce packets",
+                    )
+
+    def test_repository_skills_follow_context_line_budget(self) -> None:
+        skills_dir = SCRIPT.parent.parent / "skills"
+        violations = {}
+
+        for skill_path in skills_dir.glob("*/SKILL.md"):
+            if skill_path.parent.name == "setup":
+                continue
+            line_count = len(skill_path.read_text(encoding="utf-8").splitlines())
+            if line_count > 300:
+                violations[skill_path.parent.name] = line_count
+
+        self.assertEqual(violations, {})
+
+    def test_team_skill_uses_minimal_json_packet_handoff_contract(self) -> None:
+        skill_path = (
+            SCRIPT.parent.parent / "skills" / "orcheestrate-team" / "SKILL.md"
+        )
+        instructions = skill_path.read_text(encoding="utf-8")
+
+        self.assertIn("only four top-level fields", instructions)
+        self.assertIn('"type":"assign"', instructions)
+        self.assertIn("send_message` as the primary handoff transport", instructions)
+        self.assertIn("exact same JSON packet", instructions)
+        self.assertIn("resolved guide path", instructions)
+        self.assertIn("Do not create or call scripts", instructions)
+        self.assertLessEqual(len(instructions.splitlines()), 300)
+
+    def test_review_skill_preserves_intent_and_coverage_contract(self) -> None:
+        skill_dir = SCRIPT.parent.parent / "skills" / "review"
+        instructions = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+        interface = (skill_dir / "agents" / "openai.yaml").read_text(
+            encoding="utf-8"
+        )
+        design = (
+            SCRIPT.parent.parent / "doc" / "review" / "review-skill-design.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("Map each material requirement", instructions)
+        self.assertIn("Coverage Manifest", instructions)
+        for status in ("satisfied", "mismatched", "unverified"):
+            self.assertIn(f"`{status}`", instructions)
+        self.assertIn("overall user-intent status", instructions)
+        self.assertIn("supporting checks", instructions)
+        self.assertIn("coverage manifest", interface.lower())
+        self.assertIn("intent status", interface.lower())
+        self.assertIn("Coverage Manifest를 MVP 제외 대상으로 둔", design)
+        self.assertIn("설명을 대체한다", design)
+        self.assertFalse((skill_dir / "scripts").exists())
+        for markdown in skill_dir.rglob("*.md"):
+            self.assertLessEqual(
+                len(markdown.read_text(encoding="utf-8").splitlines()),
+                300,
+                markdown,
+            )
+
+    def test_setup_skill_separates_reflection_evidence(self) -> None:
+        skill_dir = SCRIPT.parent.parent / "skills" / "setup"
+        instructions = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+        interface = (skill_dir / "agents" / "openai.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        for surface in (
+            "Source package",
+            "Project state",
+            "Installed package",
+            "Active session",
+        ):
+            self.assertIn(surface, instructions)
+        self.assertIn("exact resolved `<plugin-root>`", instructions)
+        self.assertIn("installed package is stale", instructions)
+        self.assertIn("never refreshes the installed plugin cache", instructions)
+        self.assertIn("`--check`", instructions)
+        self.assertIn("proves only the project configuration", instructions)
+        self.assertIn("explicit user request", instructions)
+        self.assertIn("installed-package, and session reflection", interface)
+        self.assertFalse((skill_dir / "scripts").exists())
+        self.assertLessEqual(len(instructions.splitlines()), 300)
 
     def test_repository_config_matches_initializer_template(self) -> None:
         repository_root = SCRIPT.parent.parent

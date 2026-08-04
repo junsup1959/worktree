@@ -5,7 +5,7 @@ description: Orchestrate implementation through a fixed PM, PL, two-developer, a
 
 # Orcheestrate Team
 
-Coordinate a fixed implementation team with short role prompts and natural-language messages. Use a lightweight Markdown Task DAG for dependency order and ownership. Do not create schemas, state machines, queues, scoring loops, or orchestration scripts.
+Coordinate a fixed implementation team with short role prompts and lightweight JSON message packets. Use a lightweight Markdown Task DAG for dependency order and ownership. Do not create state machines, queues, scoring loops, or orchestration scripts.
 
 ## Preserve the MVP
 
@@ -73,20 +73,30 @@ QA may ask a developer for clarification or evidence during an active review, bu
 
 Route architecture, scope, systemic risk, and team changes to the PM. Route routine implementation through the PL. Direct PM supervision is allowed, but peer messages only clarify an existing assignment and never create work.
 
-## Use natural-language team messages
+## Use one lightweight JSON handoff packet
 
-Put the current node, request, relevant dependency or decision, and needed response directly in concise prose. Do not require message schemas.
+Send every inter-role handoff as one valid JSON object with only four top-level fields: `type`, `node`, `intent`, and `data`. Use `assign`, `update`, `complete`, `review`, or `audit` for `type`; use the Task DAG node ID, `TEAM`, or `ALL` for `node`; keep `intent` to one sentence; and put only phase-relevant evidence in `data`.
+
+```json
+{"type":"assign","node":"T1","intent":"Define the shared interface","data":{"boundary":["src/api.ts"],"acceptance":["callers compile"],"verification":["targeted test"]}}
+```
+
+Keep natural language inside JSON strings or arrays. Omit empty or irrelevant `data` keys. Assignments add `boundary`, `acceptance`, `verification`, and either `bdd` or `non_applicability`; completion packets add `behavior`, `files`, `evidence`, `risks`, and `effects`; review or audit packets add `evidence`, `risks`, `limits`, and `disposition`, with audit also adding `intent_status` and integrated `effects`. Use `update` for blockers, clarifications, or approved team-wide changes.
+
+This is a small agent-readable message contract, not a persisted schema or workflow runtime. Do not add packet versions, timestamps, sender or receiver fields, correlation IDs, status codes, or empty placeholders. Do not create or call scripts to build, validate, route, persist, or enforce packets; agents compose and read them directly.
 
 Use collaboration tools according to intent:
 
 - Use `spawn_agent` only for the four roster members and their first bounded task.
-- Use `send_message` for context that does not need a new turn.
-- Use `followup_task` to start or resume assigned work or review on a retained target.
+- Use `send_message` as the primary handoff transport while the retained target is running. Serialize the JSON object directly in `message` without a Markdown fence.
+- Use `followup_task` only when an idle retained target must start or resume assigned work or review. Carry the exact same JSON packet in `message` and do not duplicate it with `send_message`.
 - Use `wait_agent` for synchronization only; read the member's actual result before relying on it.
 - Use `list_agents` for supervision, never as review evidence.
 - Use `interrupt_agent` only when running work is superseded, unsafe, redirected, or no longer needed at conclusion.
 
-The PL must use `followup_task` on the retained QA target for every completed node, including after QA's orientation turn has completed. If QA is busy, let the handoff arrive at the supported message boundary and wait for QA's own result. Never perform the review in PM or PL merely because QA is idle, completed, slow, or unavailable.
+One minimal packet contains only the information needed for its current handoff. A developer assignment's `bdd` data contains the resolved guide path and relevant Actor/When, Red, minimum Green, safe Refactor, and QA focus; otherwise `non_applicability` contains a short reason and regression focus. Completion, review, and audit data must preserve actual verification evidence, remaining risks, and shared or cross-boundary effects without embedding raw transcripts.
+
+The PL must hand every completed node to the retained QA target. Use `send_message` if QA is running; after QA's orientation or prior review turn has completed, use `followup_task` with the same JSON packet to start the next review. Never perform the review in PM or PL merely because QA is idle, completed, slow, or unavailable.
 
 ## Build a lightweight Task DAG
 
@@ -116,10 +126,10 @@ The PL may revise the DAG when implementation evidence changes the plan. If a re
 ## Run implementation and QA
 
 1. The PM establishes the architecture baseline, creates the roster, and gives PL the exact retained targets. Give PL the planning task and give developers and QA bounded orientation tasks; orientation never counts as implementation or review.
-2. The PL identifies dependencies, shared-write risks, ready nodes, acceptance intent, owners, and QA focus before starting developer work.
+2. The PL identifies dependencies, shared-write risks, ready nodes, acceptance intent, owners, and QA focus, then sends each developer the minimal handoff including its BDD application or non-application basis.
 3. The PL starts one ready assignment on each chosen developer target. Parallelize independent nodes and serialize overlapping files or interfaces unless ownership is explicit.
 4. A developer returns changed scope and behavior, commands and actual results, remaining risks, and shared-area effects to the PL.
-5. The PL calls `followup_task` on the retained QA target with the node, intended behavior, changed files or baseline, acceptance intent, developer evidence, limitations, and risk focus.
+5. The PL hands the retained QA target the node, intended behavior, changed files or baseline, acceptance intent, developer evidence, limitations, and risk focus, using the message delivery rule above.
 6. QA independently inspects with `$jswork:review` and uses `$jswork:verify` for read-only reproduction or existing checks. Do not use write-oriented `$jswork:bdd`.
 7. QA sends its evidence-backed result directly to the PL.
 
@@ -135,7 +145,7 @@ If correction is needed, the PL assigns it to a developer and then starts anothe
 
 ## Run the Final Completion Audit
 
-After every in-scope node has its current QA disposition, the PL uses `followup_task` on the retained QA target for one whole-change Final Completion Audit. Send the original user request and later user decisions, the full changed set or baseline, node dispositions and evidence, known limitations, and material integration boundaries. This is a final review assignment, not a new role, DAG node, evaluator, or recurring completion loop.
+After every in-scope node has its current QA disposition, the PL uses the same message delivery rule to start one whole-change Final Completion Audit on the retained QA target. Send the original user request and later user decisions, the full changed set or baseline, node dispositions and evidence, known limitations, and material integration boundaries. This is a final review assignment, not a new role, DAG node, evaluator, or recurring completion loop.
 
 QA reports:
 
@@ -157,17 +167,17 @@ Keep prompts contextual rather than schema-bound. Include these anchors when cre
 
 ### PL prompt anchor
 
-> You are PL in a fixed PM-PL-Developer 1-Developer 2-QA team. Own the concise Task DAG and all executable assignments. After each developer handoff, use `followup_task` on the retained QA target, wait for QA's own evidence-backed disposition, and return corrected work to the same QA for re-review. Readiness or another role's checks never count as QA completion. Do not spawn agents.
+> You are PL in a fixed PM-PL-Developer 1-Developer 2-QA team. Own the concise Task DAG and all executable assignments. Exchange one compact JSON packet with `type`, `node`, `intent`, and `data`; use `send_message` while a target runs and the same packet with `followup_task` only to wake an idle target. After each developer handoff, wait for QA's own evidence-backed disposition and return corrected work to the same QA for re-review. Readiness or another role's checks never count as QA completion. Do not spawn agents or use scripts to enforce the packet.
 
 > After all nodes have current QA dispositions, use the same QA target for one Final Completion Audit against the original user intent and the integrated change. Give PM the audit's intent status, residual and future risks, verification limits, and final QA disposition. Re-run the audit only after resulting implementation changes.
 
 ### Developer prompt anchor
 
-> You are Developer [1 or 2]. Work only on the PL-assigned node. Report changed behavior, checks and actual results, risks, and shared-area effects. Coordinate with the other developer only on overlap and with QA only during active review. Do not self-assign or spawn agents.
+> You are Developer [1 or 2]. Work only on the PL-assigned node. Send PL one compact JSON completion packet containing changed behavior, checks and actual results, risks, and shared-area effects. Use JSON update packets for blockers or overlap. Do not self-assign, spawn agents, or use packet scripts.
 
 ### QA prompt anchor
 
-> You are QA in a fixed team. Review only nodes handed off by PL. Independently inspect with `$jswork:review` and read-only `$jswork:verify`, discuss evidence with the responsible developer, and send PL your findings, verification limits, and one final disposition. Re-review corrections only after PL hands them back. Do not implement fixes, assign work, use `$jswork:bdd`, or spawn agents.
+> You are QA in a fixed team. Review only nodes handed off by PL. Independently inspect with `$jswork:review` and read-only `$jswork:verify`, discuss evidence with the responsible developer, and send PL one compact JSON review packet with findings, verification limits, and one final disposition. Re-review corrections only after PL hands them back. Do not implement fixes, assign work, use `$jswork:bdd`, spawn agents, or use packet scripts.
 
 > When PL requests the Final Completion Audit, reconcile the whole change with the original user intent. Separately report scattered or future risks, cross-file/configuration/call-site/integration effects, unverified scope, and one evidence-backed final disposition.
 

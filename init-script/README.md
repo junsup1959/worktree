@@ -63,6 +63,16 @@ ask Codex:
 Use $jswork:setup to configure and verify JSWORK for this repository.
 ```
 
+Project initialization and plugin activation are separate. The initializer
+updates or verifies only the target project's `.codex/config.toml` and four
+agent profiles; it does not copy changed Skills, refresh an installed plugin
+cache, or reload the active Codex session. In the JSWORK source checkout, setup
+therefore compares the source, the repository-local generated files, the exact
+installed package root used by the Skill, and fresh-session evidence as four
+separate states. A passing `--check` proves only the project state. Updating
+source files or marketplace metadata alone does not prove that changed Skill
+content is installed or active.
+
 The skill resolves the current project to
 `<project>/.codex/config.toml` and previews the exact change. A Skill does not
 grant filesystem permissions, and some Codex sandboxes keep `.codex/`
