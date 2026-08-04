@@ -14,7 +14,8 @@ Coordinate a fixed implementation team with short role prompts and natural-langu
 - Give each developer at most one dependency-ready node at a time.
 - Start an actual QA review turn for every completed node.
 - Close a node only from a disposition authored by the retained QA target.
-- Report team completion only after every in-scope node has that disposition.
+- Run one whole-change Final Completion Audit after every in-scope node has that disposition.
+- Report team completion only after the retained QA target returns the current audit disposition.
 
 Developer or PM checks are handoff evidence, not proof that QA ran. A readiness reply, agent status, `wait_agent` notice, or PL summary is not a QA disposition.
 
@@ -47,7 +48,7 @@ Tell every member the request, repository instructions, relevant architecture, f
 - Assign only ready DAG nodes whose dependencies are satisfied.
 - Give each developer at most one active implementation node at a time.
 - Avoid parallel assignments that write the same files or change the same shared interface.
-- Continue until every in-scope node has a QA-authored disposition or the PM stops the work.
+- Continue until every in-scope node has a QA-authored disposition, then start the Final Completion Audit on the same QA target.
 
 Only the PL creates or changes executable developer assignments. The PL may propose architecture changes but cannot approve them.
 
@@ -62,6 +63,7 @@ Direct developer-to-developer discussion can coordinate an existing assignment b
 ### QA
 
 - Independently review each node handed off by the PL with proportionate read-only verification.
+- After node closure, audit the integrated change against the user's intent and its cross-file, configuration, call-site, and integration effects.
 - Discuss findings and evidence with the responsible developer and return the result directly to the PL.
 - Do not implement fixes or assign corrective work. Escalate architecture, scope, or systemic concerns through the PL.
 
@@ -131,9 +133,23 @@ The QA result must state:
 
 If correction is needed, the PL assigns it to a developer and then starts another review on the same QA target. The earlier disposition does not close the corrected node. Escalate repeated or structural findings through the PL to the PM.
 
-Before reporting completion, the PM confirms that each in-scope node has a final result authored by the retained QA target after its latest implementation. PL paraphrases and PM/developer checks may support it but cannot replace it. If QA did not run, did not return evidence, remains unavailable, or has not re-reviewed a correction, report the affected node and team execution as incomplete. Never let the orchestration thread silently act as QA.
+## Run the Final Completion Audit
 
-Give the user one integrated result with implemented scope, checks, QA dispositions, and remaining risks. Do not expose raw agent transcripts. For planning-only or read-only work, label plans and static review honestly and never claim edits or checks that did not occur.
+After every in-scope node has its current QA disposition, the PL uses `followup_task` on the retained QA target for one whole-change Final Completion Audit. Send the original user request and later user decisions, the full changed set or baseline, node dispositions and evidence, known limitations, and material integration boundaries. This is a final review assignment, not a new role, DAG node, evaluator, or recurring completion loop.
+
+QA reports:
+
+- each material user intent item as satisfied, partially satisfied, mismatched, or unverified, with evidence;
+- residual or scattered problems and plausible future failures, each with a concrete trigger, impact, and evidence;
+- cross-file, configuration, call-site, compatibility, and integration effects;
+- unverified scope and why it remains unverified;
+- one final disposition: acceptable with evidence; corrective work needed; or architecture/scope escalation needed.
+
+The PL routes a corrective or escalation disposition through existing authority. If resulting work changes the implementation, return affected nodes to QA and run the whole-change audit once more afterward. Do not repeat an audit when nothing changed. The PM must not report completion before receiving the retained QA target's current whole-change disposition.
+
+Before reporting completion, the PM confirms that each in-scope node and the integrated change have final results authored by the retained QA target after the latest implementation. PL paraphrases and PM/developer checks may support them but cannot replace them. If QA did not run, did not return evidence, remains unavailable, or has not re-reviewed a correction, report the affected scope and team execution as incomplete. Never let the orchestration thread silently act as QA.
+
+The PM's final response must include `사용자 의도 충족 여부`, `남아 있는 문제와 잠재 위험`, `검증 범위와 한계`, and `최종 QA 판정`. Support each section with the audit evidence and distinguish verified defects from plausible risks. When the audit finds no residual issue, say `검사한 범위에서는 확인된 잔여 문제가 없음` with the inspected scope and checks; never reduce the result to a bare “complete.” Do not expose raw agent transcripts. For planning-only or read-only work, label plans and static review honestly and never claim edits or checks that did not occur.
 
 ## Use these role prompt anchors
 
@@ -143,6 +159,8 @@ Keep prompts contextual rather than schema-bound. Include these anchors when cre
 
 > You are PL in a fixed PM-PL-Developer 1-Developer 2-QA team. Own the concise Task DAG and all executable assignments. After each developer handoff, use `followup_task` on the retained QA target, wait for QA's own evidence-backed disposition, and return corrected work to the same QA for re-review. Readiness or another role's checks never count as QA completion. Do not spawn agents.
 
+> After all nodes have current QA dispositions, use the same QA target for one Final Completion Audit against the original user intent and the integrated change. Give PM the audit's intent status, residual and future risks, verification limits, and final QA disposition. Re-run the audit only after resulting implementation changes.
+
 ### Developer prompt anchor
 
 > You are Developer [1 or 2]. Work only on the PL-assigned node. Report changed behavior, checks and actual results, risks, and shared-area effects. Coordinate with the other developer only on overlap and with QA only during active review. Do not self-assign or spawn agents.
@@ -150,6 +168,8 @@ Keep prompts contextual rather than schema-bound. Include these anchors when cre
 ### QA prompt anchor
 
 > You are QA in a fixed team. Review only nodes handed off by PL. Independently inspect with `$jswork:review` and read-only `$jswork:verify`, discuss evidence with the responsible developer, and send PL your findings, verification limits, and one final disposition. Re-review corrections only after PL hands them back. Do not implement fixes, assign work, use `$jswork:bdd`, or spawn agents.
+
+> When PL requests the Final Completion Audit, reconcile the whole change with the original user intent. Separately report scattered or future risks, cross-file/configuration/call-site/integration effects, unverified scope, and one evidence-backed final disposition.
 
 ## Avoid orchestration drift
 

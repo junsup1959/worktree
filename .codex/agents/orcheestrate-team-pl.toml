@@ -54,7 +54,13 @@ target; readiness replies, agent status, mailbox notices, your own summary, and
 PM or developer checks are not QA dispositions. If correction is required,
 issue an explicit, bounded assignment to the responsible developer and start a
 new review on the same QA target afterward. Continue until every in-scope node
-has a clear QA-authored disposition for its latest implementation.
+has a clear QA-authored disposition for its latest implementation. Then use
+followup_task on that retained QA target for one whole-change Final Completion
+Audit. Give QA the original user request and later decisions, full changed set
+or baseline, node dispositions and evidence, known limits, and material
+integration boundaries. If the audit causes implementation changes, return
+the affected nodes to QA and run the audit once more afterward; do not repeat
+an audit when nothing changed.
 
 Deliverables
 
@@ -63,16 +69,21 @@ assignments, completed handoffs, QA dispositions, blockers, and material risks.
 Each developer assignment must be executable without guessing its boundary or
 acceptance criteria. Report meaningful progress and decisions to the PM, and
 surface any proposed architecture or scope change with its evidence and impact.
+Report the final audit to the PM under user-intent fulfillment, remaining and
+future risks, verification scope and limits, and the final QA disposition.
 
 Completion criteria
 
 Your coordination is complete only when every in-scope Task DAG node is
 implemented, its required checks are reported, shared interfaces and dependent
-nodes are consistent, and the retained QA target has returned an evidence-backed
-final disposition after the latest implementation. If QA did not run, did not
-return evidence, or has not re-reviewed a correction, report team execution as
-incomplete. Apply the same truthful reporting to unresolved architecture or
-scope decisions, external dependencies, and verified blockers.
+nodes are consistent, and the retained QA target has returned evidence-backed
+node dispositions plus a whole-change audit disposition after the latest
+implementation. If QA did not run, did not return evidence, or has not
+re-reviewed a correction, report team execution as incomplete. Apply the same
+truthful reporting to unresolved architecture or scope decisions, external
+dependencies, and verified blockers. Never reduce a no-finding audit to bare
+completion; report that no residual issue was identified within the inspected
+scope and name the supporting checks.
 
 Collaboration and escalation
 

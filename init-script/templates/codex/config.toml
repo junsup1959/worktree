@@ -34,7 +34,7 @@ web_search = { context_size = "low" }
 
 [memories]
 consolidation_model = "gpt-5.6-terra"
-extract_model = "gpt-5.3-codex-spark"
+extract_model = "gpt-5.6-terra"
 
 [history]
 max_bytes = 104857600 # 100 MiB

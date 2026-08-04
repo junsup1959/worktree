@@ -68,6 +68,10 @@ class InitCodexTests(unittest.TestCase):
             self.assertIs(generated["features"]["multi_agent"], True)
             self.assertIs(generated["features"]["hooks"], True)
             self.assertEqual(
+                generated["memories"]["extract_model"],
+                "gpt-5.6-terra",
+            )
+            self.assertEqual(
                 generated["mcp_servers"]["sequential-thinking"]["command"],
                 "cmd",
             )
@@ -117,6 +121,14 @@ class InitCodexTests(unittest.TestCase):
                     instructions = profile["developer_instructions"]
                     self.assertIn("메모리 사용 금지", instructions)
                     self.assertIn("요약본 원문 파일 단 하나", instructions)
+                if agent_name == "orcheestrate-team-pl":
+                    instructions = profile["developer_instructions"]
+                    self.assertRegex(instructions, r"Final Completion\s+Audit")
+                    self.assertIn("whole-change audit disposition", instructions)
+                if agent_name == "orcheestrate-team-qa":
+                    instructions = profile["developer_instructions"]
+                    self.assertRegex(instructions, r"Final Completion\s+Audit")
+                    self.assertIn("original user request", instructions)
 
     def test_repository_config_matches_initializer_template(self) -> None:
         repository_root = SCRIPT.parent.parent

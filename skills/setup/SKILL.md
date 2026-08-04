@@ -228,8 +228,8 @@ the repository is ready, do not apply changes. Use preview or `--check`.
 
 For a fresh target, `.codex/config.toml` is an exact copy of the packaged
 canonical template, including `features.hooks = true`, the project-scoped
-Sequential Thinking MCP, and the source repository's model, sandbox, tool,
-memory, agent, application, shell-environment, and feature defaults.
+Sequential Thinking MCP, `gpt-5.6-terra` for both memory models, and the source
+repository's sandbox, tool, agent, application, shell-environment, and defaults.
 
 For a target with an existing valid configuration, its prior settings and
 comments remain intact. In both cases the effective JSWORK-required value is:

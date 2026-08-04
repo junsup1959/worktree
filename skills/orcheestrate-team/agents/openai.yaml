@@ -1,4 +1,4 @@
 interface:
   display_name: "Orcheestrate Team"
-  short_description: "Coordinate a fixed team with independent QA closure"
-  default_prompt: "Use $orcheestrate-team to implement this with a fixed PM, PL, two developers, and evidence-backed QA dispositions."
+  short_description: "Coordinate a fixed team with a final QA audit"
+  default_prompt: "Use $orcheestrate-team to implement this with a fixed PM, PL, two developers, node QA, and a whole-change Final Completion Audit before PM completion."
