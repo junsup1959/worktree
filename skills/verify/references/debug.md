@@ -17,5 +17,6 @@ failure, intermittent behavior, or environment-specific mismatch.
 - Stop at evidence: report the demonstrated trigger and impact, or explain why
   the result remains inconclusive. Do not implement a fix.
 
-Do not run destructive diagnostics or commands that mutate repository or
-external state without explicit user authorization.
+Before running a diagnostic, identify its expected repository and external
+state effects. Do not run a diagnostic that writes state or exceeds the active
+role or sandbox; report it as not run and state the verification limit.

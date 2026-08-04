@@ -7,8 +7,12 @@ existing tests or checks, and developer verification reports.
 
 - Restate the precise claim and identify the closest existing check that can
   observe it.
-- Run the narrowest relevant check first. Expand to existing regression checks
-  only when the affected boundary or risk justifies it.
+- Identify the check's expected writes before execution, including caches,
+  coverage, snapshots, build outputs, generated files, logs, and data stores.
+  Treat a check that cannot run read-only within the active role and sandbox as
+  not run.
+- Run the narrowest relevant read-only check first. Expand to existing
+  regression checks only when the affected boundary or risk justifies it.
 - Capture the exact command, revision or workspace state when relevant, exit
   result, failures, skips, and meaningful output.
 - Distinguish passed, failed, skipped, and not-run checks. A suite name or pass

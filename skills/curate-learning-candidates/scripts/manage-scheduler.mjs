@@ -50,7 +50,6 @@ export function parseSchedulerCli(argv) {
 
   while (index < argv.length) {
     const name = argv[index];
-
     switch (name) {
       case "--project":
         options.project = takeValue(argv, index, name);
@@ -85,7 +84,7 @@ export function parseSchedulerCli(argv) {
   if (!new Set(["status", "ensure", "help"]).has(options.command)) {
     throw new Error(`Unknown command: ${options.command}\n${usage()}`);
   }
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(options.time)) {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/u.test(options.time)) {
     throw new Error("--time must use 24-hour HH:mm format");
   }
   if (options.taskName && /[<>:"|?*\u0000-\u001f]/u.test(options.taskName)) {
@@ -103,10 +102,9 @@ function normalizeIdentityPath(value) {
 export function deriveTaskName(projectRoot) {
   const identity = normalizeIdentityPath(projectRoot);
   const projectName =
-    path
-      .basename(path.resolve(projectRoot))
-      .replace(/[^A-Za-z0-9_-]+/g, "-")
-      .replace(/^-+|-+$/g, "")
+    path.basename(path.resolve(projectRoot))
+      .replace(/[^A-Za-z0-9_-]+/gu, "-")
+      .replace(/^-+|-+$/gu, "")
       .slice(0, 40) || "project";
   const digest = createHash("sha256").update(identity).digest("hex").slice(0, 10);
   return `${TASK_PREFIX}-${projectName}-${digest}`;
@@ -119,18 +117,21 @@ function quoteTaskToken(value) {
   return `"${value}"`;
 }
 
-export function buildTaskAction({
-  nodePath,
-  runnerPath,
-  projectRoot,
-}) {
-  return [
-    quoteTaskToken(nodePath),
-    quoteTaskToken(runnerPath),
-    "run",
-    "--project",
-    quoteTaskToken(projectRoot),
-  ].join(" ");
+export function buildTaskInvocation({ nodePath, runnerPath, projectRoot }) {
+  return {
+    command: nodePath,
+    arguments: [
+      quoteTaskToken(runnerPath),
+      "run",
+      "--project",
+      quoteTaskToken(projectRoot),
+    ].join(" "),
+  };
+}
+
+export function buildTaskAction(config) {
+  const invocation = buildTaskInvocation(config);
+  return `${quoteTaskToken(invocation.command)} ${invocation.arguments}`;
 }
 
 export function buildCreateArgs({ taskName, action, time }) {
@@ -154,6 +155,7 @@ export function resolveSchedulerConfig(options) {
   const nodePath = path.resolve(options.nodePath);
   const runnerPath = path.resolve(options.runnerPath);
   const taskName = options.taskName || deriveTaskName(projectRoot);
+  const invocation = buildTaskInvocation({ nodePath, runnerPath, projectRoot });
 
   return {
     projectRoot,
@@ -161,13 +163,13 @@ export function resolveSchedulerConfig(options) {
     runnerPath,
     taskName,
     time: options.time,
+    ...invocation,
     action: buildTaskAction({ nodePath, runnerPath, projectRoot }),
   };
 }
 
 function truncateDiagnostic(value) {
-  const normalized = String(value ?? "").trim();
-  return normalized.slice(0, MAX_DIAGNOSTIC_LENGTH);
+  return String(value ?? "").trim().slice(0, MAX_DIAGNOSTIC_LENGTH);
 }
 
 async function runSchtasks(args) {
@@ -179,15 +181,10 @@ async function runSchtasks(args) {
     });
     let stdout = "";
     let stderr = "";
-
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk;
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk;
-    });
+    child.stdout.on("data", (chunk) => { stdout += chunk; });
+    child.stderr.on("data", (chunk) => { stderr += chunk; });
     child.once("error", reject);
     child.once("close", (code) => {
       resolve({
@@ -200,84 +197,132 @@ async function runSchtasks(args) {
 }
 
 function queryArgs(taskName) {
-  return ["/Query", "/TN", taskName, "/FO", "CSV", "/NH"];
+  return ["/Query", "/TN", taskName, "/XML"];
+}
+
+function decodeXml(value) {
+  return value
+    .replaceAll("&quot;", '"')
+    .replaceAll("&apos;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&");
+}
+
+function xmlText(xml, name) {
+  const match = xml.match(new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${name}>`, "iu"));
+  return match ? decodeXml(match[1].trim()) : null;
+}
+
+export function parseTaskXml(xml) {
+  if (typeof xml !== "string" || !xml.trim()) {
+    throw new Error("Task Scheduler returned empty XML");
+  }
+  const command = xmlText(xml, "Command");
+  const argumentsText = xmlText(xml, "Arguments") ?? "";
+  const startBoundary = xmlText(xml, "StartBoundary");
+  const timeMatch = startBoundary?.match(/T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?/u);
+  if (!command || !startBoundary || !timeMatch) {
+    throw new Error("Task XML is missing Command or StartBoundary");
+  }
+  return {
+    command,
+    arguments: argumentsText,
+    frequency: /<ScheduleByDay(?:\s[^>]*)?>/iu.test(xml) ? "daily" : "other",
+    time: timeMatch[1],
+  };
+}
+
+function normalizeWindowsPath(value) {
+  return path.win32.normalize(value.trim()).replace(/[\\/]+$/u, "").toLowerCase();
+}
+
+function normalizeArguments(value) {
+  return value.trim();
+}
+
+function compareConfiguration(config, observed) {
+  const mismatches = [];
+  if (normalizeWindowsPath(observed.command) !== normalizeWindowsPath(config.command)) {
+    mismatches.push("action.command");
+  }
+  if (normalizeArguments(observed.arguments) !== normalizeArguments(config.arguments)) {
+    mismatches.push("action.arguments");
+  }
+  if (observed.frequency !== "daily") mismatches.push("schedule.frequency");
+  if (observed.time !== config.time) mismatches.push("schedule.time");
+  return mismatches;
 }
 
 export async function getSchedulerStatus(
   config,
-  {
-    platform = process.platform,
-    executeSchtasks = runSchtasks,
-  } = {},
+  { platform = process.platform, executeSchtasks = runSchtasks } = {},
 ) {
+  const base = {
+    task_name: config.taskName,
+    project_root: config.projectRoot,
+  };
   if (platform !== "win32") {
     return {
+      ...base,
       status: "unsupported",
       registered: false,
-      task_name: config.taskName,
-      project_root: config.projectRoot,
+      configuration_matches: false,
       reason: "Windows Task Scheduler is only available on win32.",
     };
   }
 
   const query = await executeSchtasks(queryArgs(config.taskName));
+  if (query.code !== 0) {
+    return { ...base, status: "missing", registered: false, configuration_matches: false };
+  }
+
+  let observed;
+  try {
+    observed = parseTaskXml(query.stdout);
+  } catch (error) {
+    return {
+      ...base,
+      status: "unverified",
+      registered: true,
+      configuration_matches: false,
+      reason: error.message,
+    };
+  }
+
+  const mismatches = compareConfiguration(config, observed);
   return {
-    status: query.code === 0 ? "registered" : "missing",
-    registered: query.code === 0,
-    task_name: config.taskName,
-    project_root: config.projectRoot,
+    ...base,
+    status: mismatches.length === 0 ? "registered" : "stale",
+    registered: true,
+    configuration_matches: mismatches.length === 0,
+    schedule: { frequency: observed.frequency, time: observed.time },
+    action: { command: observed.command, arguments: observed.arguments },
+    ...(mismatches.length ? { mismatches } : {}),
   };
 }
 
 export async function ensureScheduler(
   config,
-  {
-    platform = process.platform,
-    executeSchtasks = runSchtasks,
-  } = {},
+  { platform = process.platform, executeSchtasks = runSchtasks } = {},
 ) {
-  const current = await getSchedulerStatus(config, {
-    platform,
-    executeSchtasks,
-  });
-
-  if (current.status === "unsupported") {
-    return current;
-  }
+  const statusOptions = { platform, executeSchtasks };
+  const current = await getSchedulerStatus(config, statusOptions);
+  if (current.status === "unsupported") return current;
   if (current.registered) {
-    return {
-      ...current,
-      created: false,
-      existing_configuration_preserved: true,
-    };
+    return { ...current, created: false, existing_configuration_preserved: true };
   }
 
   const created = await executeSchtasks(buildCreateArgs(config));
-  if (created.code === 0) {
-    return {
-      status: "registered",
-      registered: true,
-      created: true,
-      task_name: config.taskName,
-      project_root: config.projectRoot,
-      schedule: {
-        frequency: "daily",
-        time: config.time,
-      },
-      action: config.action,
-    };
+  const verified = await getSchedulerStatus(config, statusOptions);
+  if (verified.configuration_matches) {
+    return { ...verified, created: created.code === 0 };
   }
-
-  // A concurrent invocation may have created the same deterministic task.
-  const afterFailure = await executeSchtasks(queryArgs(config.taskName));
-  if (afterFailure.code === 0) {
+  if (verified.registered) {
     return {
-      status: "registered",
-      registered: true,
-      created: false,
-      task_name: config.taskName,
-      project_root: config.projectRoot,
-      existing_configuration_preserved: true,
+      ...verified,
+      created: created.code === 0,
+      existing_configuration_preserved: created.code !== 0,
     };
   }
 
@@ -303,24 +348,20 @@ async function main() {
     process.stdout.write(usage());
     return;
   }
-
   const config = resolveSchedulerConfig(options);
   await validatePaths(config);
-  const result =
-    options.command === "ensure"
-      ? await ensureScheduler(config)
-      : await getSchedulerStatus(config);
-
+  const result = options.command === "ensure"
+    ? await ensureScheduler(config)
+    : await getSchedulerStatus(config);
   console.log(JSON.stringify(result, null, 2));
-  if (result.status === "unsupported") {
+  if (["unsupported", "unverified", "stale"].includes(result.status)) {
     process.exitCode = 2;
+  } else if (result.status === "missing") {
+    process.exitCode = 3;
   }
 }
 
-const isMain =
-  process.argv[1] &&
-  pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
-
+const isMain = process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
 if (isMain) {
   main().catch((error) => {
     process.stderr.write(`curate-learning-candidates scheduler: ${error.message}\n`);

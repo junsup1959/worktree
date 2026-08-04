@@ -40,10 +40,13 @@ implementation or test creation to the BDD skill.
 
 - Do not edit repository files, create tests, implement fixes, or change
   external state.
-- Prefer documented read-only diagnostics. If a check would alter repository or
-  external state, do not run it without user authorization; report the limit.
-- If no usable check exists, describe the smallest missing scenario or command
-  instead of implementing it.
+- Before running a command, identify expected writes such as caches, coverage,
+  snapshots, build outputs, generated files, logs, or service and data changes.
+- Run only checks that remain read-only within the active role, sandbox, and
+  environment. User authorization does not expand those boundaries.
+- If no non-mutating check exists, report the command or scenario as not run,
+  explain the side effect or permission limit, and describe the smallest
+  evidence gap instead of implementing it.
 - Never claim that a check ran or passed without current evidence.
 
 ## Report evidence

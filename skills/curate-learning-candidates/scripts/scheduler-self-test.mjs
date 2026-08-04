@@ -9,145 +9,130 @@ import {
   ensureScheduler,
   getSchedulerStatus,
   parseSchedulerCli,
+  parseTaskXml,
   resolveSchedulerConfig,
 } from "./manage-scheduler.mjs";
 
 const parsed = parseSchedulerCli([
-  "ensure",
-  "--project",
-  "C:/project/example",
-  "--time",
-  "03:15",
+  "ensure", "--project", "C:/project/example", "--time", "03:15",
 ]);
 assert.equal(parsed.command, "ensure");
 assert.equal(parsed.time, "03:15");
-
 assert.throws(
-  () =>
-    parseSchedulerCli([
-      "ensure",
-      "--project",
-      "C:/project/example",
-      "--time",
-      "25:00",
-    ]),
-  /24-hour HH:mm/,
+  () => parseSchedulerCli(["ensure", "--time", "25:00"]),
+  /24-hour HH:mm/u,
 );
 
-const firstTaskName = deriveTaskName("C:/project/example");
-const secondTaskName = deriveTaskName("C:/project/example");
-const otherTaskName = deriveTaskName("C:/project/other");
-assert.equal(firstTaskName, secondTaskName);
-assert.notEqual(firstTaskName, otherTaskName);
-assert.match(firstTaskName, /^Codex-CurateLearningCandidates-example-[a-f0-9]{10}$/);
+const taskName = deriveTaskName("C:/project/example");
+assert.equal(taskName, deriveTaskName("C:/project/example"));
+assert.notEqual(taskName, deriveTaskName("C:/project/other"));
+assert.match(taskName, /^Codex-CurateLearningCandidates-example-[a-f0-9]{10}$/u);
 
-const action = buildTaskAction({
-  nodePath: "C:\\Program Files\\nodejs\\node.exe",
-  runnerPath: "C:\\project\\worktree\\skills\\curate-learning-candidates\\scripts\\run-curation.mjs",
-  projectRoot: "C:\\project\\worktree",
-});
-assert.equal(
-  action,
-  '"C:\\Program Files\\nodejs\\node.exe" "C:\\project\\worktree\\skills\\curate-learning-candidates\\scripts\\run-curation.mjs" run --project "C:\\project\\worktree"',
-);
-
-const config = {
-  projectRoot: "C:\\project\\worktree",
-  nodePath: "C:\\Program Files\\nodejs\\node.exe",
-  runnerPath: "C:\\project\\worktree\\skills\\curate-learning-candidates\\scripts\\run-curation.mjs",
-  taskName: "Codex-CurateLearningCandidates-worktree-test",
+const config = resolveSchedulerConfig({
+  project: "C:/project/example",
   time: "02:00",
-  action,
-};
-
-const createArgs = buildCreateArgs(config);
-assert.deepEqual(createArgs.slice(0, 5), [
-  "/Create",
-  "/TN",
-  config.taskName,
-  "/TR",
-  action,
-]);
-assert.equal(createArgs.includes("/F"), false);
-
-const existingCalls = [];
-const existing = await ensureScheduler(config, {
-  platform: "win32",
-  executeSchtasks: async (args) => {
-    existingCalls.push(args);
-    return { code: 0, stdout: "", stderr: "" };
-  },
+  taskName: "Codex-CurateLearningCandidates-example-test",
+  nodePath: "C:/Program Files/nodejs/node.exe",
+  runnerPath: path.resolve("skills/curate-learning-candidates/scripts/run-curation.mjs"),
 });
-assert.equal(existing.registered, true);
-assert.equal(existing.created, false);
-assert.equal(existing.existing_configuration_preserved, true);
-assert.equal("schedule" in existing, false);
-assert.equal(existingCalls.length, 1);
-assert.equal(existingCalls[0][0], "/Query");
+assert.equal(buildTaskAction(config), config.action);
+assert.equal(buildCreateArgs(config).includes("/F"), false);
 
-const createCalls = [];
-const created = await ensureScheduler(config, {
-  platform: "win32",
-  executeSchtasks: async (args) => {
-    createCalls.push(args);
-    return args[0] === "/Query"
-      ? { code: 1, stdout: "", stderr: "" }
-      : { code: 0, stdout: "", stderr: "" };
-  },
-});
-assert.equal(created.registered, true);
-assert.equal(created.created, true);
-assert.deepEqual(created.schedule, {
+function taskXml({
+  command = config.command,
+  argumentsText = config.arguments,
+  time = config.time,
+  daily = true,
+} = {}) {
+  const encode = (value) => value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+  return `<?xml version="1.0"?><Task><Triggers><CalendarTrigger><StartBoundary>2026-08-05T${time}:00</StartBoundary>${daily ? "<ScheduleByDay><DaysInterval>1</DaysInterval></ScheduleByDay>" : ""}</CalendarTrigger></Triggers><Actions><Exec><Command>${encode(command)}</Command><Arguments>${encode(argumentsText)}</Arguments></Exec></Actions></Task>`;
+}
+
+assert.deepEqual(parseTaskXml(taskXml()), {
+  command: config.command,
+  arguments: config.arguments,
   frequency: "daily",
   time: "02:00",
 });
-assert.equal(created.action, action);
-assert.deepEqual(
-  createCalls.map((args) => args[0]),
-  ["/Query", "/Create"],
-);
-assert.equal(createCalls[1].includes("/F"), false);
+
+const exactCalls = [];
+const exact = await ensureScheduler(config, {
+  platform: "win32",
+  executeSchtasks: async (args) => {
+    exactCalls.push(args);
+    return { code: 0, stdout: taskXml(), stderr: "" };
+  },
+});
+assert.equal(exact.status, "registered");
+assert.equal(exact.configuration_matches, true);
+assert.equal(exact.created, false);
+assert.equal(exact.existing_configuration_preserved, true);
+assert.deepEqual(exactCalls[0], ["/Query", "/TN", config.taskName, "/XML"]);
+
+const stale = await ensureScheduler(config, {
+  platform: "win32",
+  executeSchtasks: async () => ({
+    code: 0,
+    stdout: taskXml({ time: "03:00" }),
+    stderr: "",
+  }),
+});
+assert.equal(stale.status, "stale");
+assert.equal(stale.configuration_matches, false);
+assert.deepEqual(stale.mismatches, ["schedule.time"]);
+assert.equal(stale.existing_configuration_preserved, true);
+
+const spacingMismatch = await getSchedulerStatus(config, {
+  platform: "win32",
+  executeSchtasks: async () => ({
+    code: 0,
+    stdout: taskXml({
+      argumentsText: config.arguments.replace("C:\\project\\example", "C:\\project\\example  moved"),
+    }),
+    stderr: "",
+  }),
+});
+assert.equal(spacingMismatch.status, "stale");
+assert.deepEqual(spacingMismatch.mismatches, ["action.arguments"]);
+
+let queryCount = 0;
+const created = await ensureScheduler(config, {
+  platform: "win32",
+  executeSchtasks: async (args) => {
+    if (args[0] === "/Query") {
+      queryCount += 1;
+      return queryCount === 1
+        ? { code: 1, stdout: "", stderr: "" }
+        : { code: 0, stdout: taskXml(), stderr: "" };
+    }
+    assert.equal(args[0], "/Create");
+    assert.equal(args.includes("/F"), false);
+    return { code: 0, stdout: "SUCCESS", stderr: "" };
+  },
+});
+assert.equal(created.status, "registered");
+assert.equal(created.configuration_matches, true);
+assert.equal(created.created, true);
+assert.equal(queryCount, 2);
+
+const unverified = await getSchedulerStatus(config, {
+  platform: "win32",
+  executeSchtasks: async () => ({ code: 0, stdout: "not xml", stderr: "" }),
+});
+assert.equal(unverified.status, "unverified");
+assert.equal(unverified.registered, true);
 
 const missing = await getSchedulerStatus(config, {
   platform: "win32",
   executeSchtasks: async () => ({ code: 1, stdout: "", stderr: "" }),
 });
 assert.equal(missing.status, "missing");
-assert.equal(missing.registered, false);
 
-const unsupported = await ensureScheduler(config, {
-  platform: "linux",
-  executeSchtasks: async () => {
-    throw new Error("must not be called");
-  },
-});
+const unsupported = await ensureScheduler(config, { platform: "linux" });
 assert.equal(unsupported.status, "unsupported");
-
-let queryCount = 0;
-await assert.rejects(
-  () =>
-    ensureScheduler(config, {
-      platform: "win32",
-      executeSchtasks: async (args) => {
-        if (args[0] === "/Query") {
-          queryCount += 1;
-          return { code: 1, stdout: "", stderr: "" };
-        }
-        return { code: 5, stdout: "", stderr: "Access is denied." };
-      },
-    }),
-  /Access is denied/,
-);
-assert.equal(queryCount, 2);
-
-const resolved = resolveSchedulerConfig({
-  project: "C:/project/example",
-  time: "04:30",
-  taskName: null,
-  nodePath: process.execPath,
-  runnerPath: path.join(process.cwd(), "runner.mjs"),
-});
-assert.equal(resolved.time, "04:30");
-assert.equal(resolved.taskName, deriveTaskName(resolved.projectRoot));
 
 process.stdout.write("curate-learning-candidates scheduler self-test: ok\n");

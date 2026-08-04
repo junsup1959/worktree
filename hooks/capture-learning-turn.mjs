@@ -2,9 +2,11 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   appendFile,
   mkdir,
+  open,
   readFile,
   readdir,
   rename,
+  stat,
   unlink,
   writeFile,
 } from "node:fs/promises";
@@ -13,6 +15,12 @@ import path from "node:path";
 const MAX_STDIN_BYTES = 2 * 1024 * 1024;
 const MAX_PROMPT_CHARS = 64_000;
 const MAX_ANSWER_CHARS = 128_000;
+const MAX_CANDIDATES = 1_000;
+const CANDIDATE_RETENTION_MS = 90 * 24 * 60 * 60 * 1_000;
+const PENDING_RETENTION_MS = 24 * 60 * 60 * 1_000;
+const LOCK_STALE_MS = 60_000;
+const LOCK_RETRIES = 40;
+const LOCK_RETRY_MS = 25;
 
 const SECRET_PATTERNS = [
   {
@@ -68,6 +76,7 @@ function projectPaths(event) {
     learningDir,
     pendingDir: path.join(learningDir, "pending"),
     candidatesFile: path.join(learningDir, "candidates.jsonl"),
+    candidatesLockFile: path.join(learningDir, "candidates.lock"),
     errorsFile: path.join(learningDir, "hook-errors.jsonl"),
   };
 }
@@ -125,6 +134,14 @@ async function savePrompt(event, paths) {
   const prompt = asRequiredString(event.prompt, "prompt");
   const key = candidateKey(sessionId, turnId);
   const pendingPath = path.join(paths.pendingDir, `${key}.json`);
+
+  if (isOptedOut(prompt)) {
+    await unlink(pendingPath).catch((error) => {
+      if (error?.code !== "ENOENT") throw error;
+    });
+    return;
+  }
+
   const sanitized = sanitizeText(prompt, MAX_PROMPT_CHARS);
 
   const pending = {
@@ -132,7 +149,6 @@ async function savePrompt(event, paths) {
     session_id: sessionId,
     turn_id: turnId,
     captured_at: new Date().toISOString(),
-    opted_out: isOptedOut(prompt),
     original_prompt: sanitized.text,
     prompt_redactions: sanitized.redactionCount,
     prompt_truncated: sanitized.truncated,
@@ -197,6 +213,87 @@ async function saveAnswerSnapshot(event, paths) {
   await writeFile(pendingPath, `${JSON.stringify(updated)}\n`, "utf8");
 }
 
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function acquireLock(lockPath) {
+  await mkdir(path.dirname(lockPath), { recursive: true });
+
+  for (let attempt = 0; attempt < LOCK_RETRIES; attempt += 1) {
+    try {
+      const handle = await open(lockPath, "wx");
+      return async () => {
+        await handle.close().catch(() => {});
+        await unlink(lockPath).catch(() => {});
+      };
+    } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+
+      const metadata = await stat(lockPath).catch(() => null);
+      if (metadata && Date.now() - metadata.mtimeMs > LOCK_STALE_MS) {
+        await unlink(lockPath).catch(() => {});
+        continue;
+      }
+      await wait(LOCK_RETRY_MS);
+    }
+  }
+
+  throw new Error(`Timed out waiting for candidate store lock: ${lockPath}`);
+}
+
+async function readCandidates(filePath) {
+  let content;
+  try {
+    content = await readFile(filePath, "utf8");
+  } catch (error) {
+    if (error?.code === "ENOENT") return [];
+    throw error;
+  }
+
+  const lines = content.split(/\r?\n/u).filter((line) => line.trim());
+  return lines.map((line, index) => {
+    try {
+      return JSON.parse(line);
+    } catch (error) {
+      throw new Error(`Invalid candidate JSONL at line ${index + 1}`, {
+        cause: error,
+      });
+    }
+  });
+}
+
+async function storeCandidate(candidate, paths) {
+  const releaseLock = await acquireLock(paths.candidatesLockFile);
+  let temporaryPath;
+
+  try {
+    const cutoff = Date.now() - CANDIDATE_RETENTION_MS;
+    const retained = (await readCandidates(paths.candidatesFile)).filter(
+      (entry) => Date.parse(entry?.captured_at) >= cutoff,
+    );
+    const byId = new Map(
+      retained.map((entry) => [entry.candidate_id, entry]),
+    );
+    byId.set(candidate.candidate_id, candidate);
+
+    const bounded = [...byId.values()]
+      .sort((left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at))
+      .slice(-MAX_CANDIDATES);
+    temporaryPath = `${paths.candidatesFile}.${process.pid}-${randomUUID()}.tmp`;
+    await writeFile(
+      temporaryPath,
+      bounded.map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+      "utf8",
+    );
+    await rename(temporaryPath, paths.candidatesFile);
+    temporaryPath = null;
+  } finally {
+    if (temporaryPath) await unlink(temporaryPath).catch(() => {});
+    await releaseLock();
+  }
+}
+
 async function finalizePendingFile(pendingPath, paths, sessionId) {
   const claimedPath = `${pendingPath}.${process.pid}-${randomUUID()}.claim`;
 
@@ -256,12 +353,7 @@ async function finalizePendingFile(pendingPath, paths, sessionId) {
       },
     };
 
-    await mkdir(paths.learningDir, { recursive: true });
-    await appendFile(
-      paths.candidatesFile,
-      `${JSON.stringify(candidate)}\n`,
-      "utf8",
-    );
+    await storeCandidate(candidate, paths);
     restoreOnFailure = false;
     await unlink(claimedPath);
   } catch (error) {
@@ -275,6 +367,28 @@ async function finalizePendingFile(pendingPath, paths, sessionId) {
       }
     }
     throw error;
+  }
+}
+
+async function cleanupStalePending(paths) {
+  let entries;
+  try {
+    entries = await readdir(paths.pendingDir, { withFileTypes: true });
+  } catch (error) {
+    if (error?.code === "ENOENT") return;
+    throw error;
+  }
+
+  const cutoff = Date.now() - PENDING_RETENTION_MS;
+  for (const entry of entries) {
+    if (!entry.isFile() || !/^[a-f0-9]{64}\.json(?:\..+\.claim)?$/u.test(entry.name)) {
+      continue;
+    }
+    const filePath = path.join(paths.pendingDir, entry.name);
+    const metadata = await stat(filePath).catch(() => null);
+    if (metadata?.mtimeMs < cutoff) {
+      await unlink(filePath).catch(() => {});
+    }
   }
 }
 
@@ -332,6 +446,7 @@ async function main() {
 
   switch (event.hook_event_name) {
     case "UserPromptSubmit":
+      await cleanupStalePending(activePaths);
       await finalizeSession(event, activePaths);
       await savePrompt(event, activePaths);
       break;
@@ -340,6 +455,7 @@ async function main() {
       break;
     case "SessionEnd":
       await finalizeSession(event, activePaths);
+      await cleanupStalePending(activePaths);
       break;
     default:
       break;
