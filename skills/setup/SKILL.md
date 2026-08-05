@@ -34,79 +34,15 @@ Keep three hook surfaces separate:
 - Only Graphify may add its project-local `PreToolUse` `hook-check` entry to
   `<target-project>/.codex/hooks.json` in this workflow.
 
-## Hook Ownership Guard
+## Required References
 
-Before changing the target project, verify the installed package from the
-resolved plugin root:
-
-1. `.codex-plugin/plugin.json` has `name` set to `jswork` and `hooks` set to
-   `./hooks/hooks.json`.
-2. `hooks/hooks.json` exists and its JSWORK learning handlers use
-   `${PLUGIN_ROOT}` on POSIX. Each Windows handler must use the package's
-   shell-neutral `powershell.exe -EncodedCommand` launcher. Its decoded script
-   resolves `$env:PLUGIN_ROOT` inside that nested PowerShell process and
-   propagates Node's exit code. Never put `%PLUGIN_ROOT%`, `${PLUGIN_ROOT}`, or
-   `$env:PLUGIN_ROOT` directly in the raw Windows command: Codex runs hook
-   commands through the active session shell, which may be PowerShell, cmd.exe,
-   or Git Bash.
-3. Run the package self-test when Node.js is available:
-
-   ```powershell
-   node "<plugin-root>\hooks\self-test.mjs"
-   ```
-
-If package validation fails, report the plugin installation as incomplete and
-stop. Never compensate by copying `hooks/hooks.json` or registering
-`capture-learning-turn.mjs` in the target project's `.codex/hooks.json`.
-
-Inspect an existing `<target-project>/.codex/hooks.json` read-only. Treat any
-`UserPromptSubmit`, `Stop`, or `SessionEnd` handler for
-`capture-learning-turn.mjs`, `${PLUGIN_ROOT}`, `%PLUGIN_ROOT%`, or
-`$env:PLUGIN_ROOT` there as a misconfigured duplicate plugin hook. Report its
-exact location and do not add another hook. Do not delete or rewrite it without
-an explicit repair request.
-
-## Reflection Audit
-
-Initialization and plugin activation are separate evidence surfaces. Before
-claiming that recent changes are reflected, report these states independently:
-
-- **Source package:** the changed files and checks in the source checkout.
-- **Project state:** `.codex/config.toml` and the four agent profiles generated
-  from the resolved plugin root. Run `init_codex.py --check`; for the JSWORK
-  source repository, also compare its project profiles and configuration with
-  the packaged templates.
-- **Installed package:** the exact resolved `<plugin-root>` used by this Skill.
-  When the target is a JSWORK source checkout but that root is an installed
-  cache elsewhere, compare the requested changed package files across both
-  roots. A content mismatch means the installed package is stale even when the
-  manifest version or marketplace metadata matches.
-- **Active session:** a new Codex session after project apply or package refresh.
-  Do not claim that the current session reloaded changed Skills or profiles.
-
-The initializer never copies plugin Skills, manifests, hooks, or documentation
-into a target and never refreshes the installed plugin cache. Its `--check`
-proves only the project configuration and agent-profile state. Do not install,
-update, reinstall, or edit cache content without an explicit user request. If
-source, project, installed-package, or session evidence is missing or differs,
-name the incomplete layer and the exact next action instead of reporting a
-generic setup success.
-
-## Permission Boundary
-
-- A Skill supplies instructions; it does not receive filesystem privileges.
-- Treat `<target-project>/.codex/` as a potentially protected path even when
-  the rest of the repository is writable.
-- Never weaken the sandbox, change approval policy, or try to bypass a denied
-  write.
-- Preview and check operations are read-only. An apply operation may require a
-  narrowly scoped approval from the Codex host.
-- Treat `graphify codex install` as a write operation. It may update both the
-  repository-root `AGENTS.md` and `.codex/hooks.json`.
-- Classify a failure as a permission problem only when the host denies the
-  operation or the command reports an operating-system access-denied or
-  `PermissionError`. Command-not-found, invalid TOML, profile conflicts, and
-  Graphify validation failures are not permission problems.
+- Before any preview, check, apply, or repair, read
+  [validation-and-permissions.md](references/validation-and-permissions.md)
+  completely. It defines hook ownership, reflection evidence, and permission
+  handling.
+- Before applying changes, forcing feature values, removing retired profiles,
+  resolving a preview/check conflict, or validating fresh-project output, read
+  [project-contract.md](references/project-contract.md) completely.
 
 ## Workflow
 
@@ -200,97 +136,12 @@ generic setup success.
    If JSWORK `--check` passes but this Graphify verification fails, report
    JSWORK as configured and Graphify integration as incomplete. Do not collapse
    the two states into a generic initialization success or failure.
-10. Perform the Reflection Audit and report source, project, installed-package,
-    and active-session status separately.
+10. Perform the Reflection Audit from
+    [validation-and-permissions.md](references/validation-and-permissions.md)
+    and report source, project, installed-package, and active-session status
+    separately.
 11. Tell the user to start a new Codex session in the repository after a project
     apply or package refresh so changed configuration and Skills are loaded.
 
 If the user only asks what would change, how initialization works, or whether
 the repository is ready, do not apply changes. Use preview or `--check`.
-
-## Conflict Policy
-
-- Never copy or merge `global_config.toml`.
-- Never copy `assets/AGENTS.md` into a target or implement a second
-  Graphify-specific merge. It is a reference sample of the expected native
-  Graphify guidance only.
-- Let `graphify codex install` own its `AGENTS.md` section and
-  `.codex/hooks.json` entry. Do not add a duplicate JSWORK-managed Graphify
-  section or hook.
-- Do not treat absent Graphify integration as a JSWORK failure when the target
-  project did not enable Graphify.
-- Never edit a user-global Codex configuration.
-- Never use the user home directory, a filesystem root, or `CODEX_HOME` as a
-  project target.
-- When `.codex/config.toml` is absent, create it from the packaged canonical
-  template. When it exists, preserve its valid settings and comments instead
-  of forcing it to match the template; merge only `features.multi_agent` and
-  `features.hooks`.
-- If either required feature is explicitly `false`, leave it unchanged and
-  explain the conflict. Use `--apply --force` only when the user explicitly
-  asks to override that value.
-- Never overwrite an existing project agent profile with different content.
-  Report the exact conflicting file so the user can rename or reconcile it.
-  `--force` applies only to an explicit false value for the two required
-  features; it does not override agent profiles.
-- Never delete unrecognized project agent profiles. Retired Explorer profiles
-  may be removed only after an explicit user request and only through
-  `--remove-legacy-explorers`, which is limited to `base-explorer.toml`,
-  `code-explorer.toml`, `data-explorer.toml`, and `doc-explorer.toml`.
-  In particular, an existing `orcheestrate-team-developer-1.toml` or
-  `orcheestrate-team-developer-2.toml` remains untouched when the shared
-  developer profile is installed. Preview, apply, and check report these exact
-  files with a non-failing warning so they can be reconciled explicitly instead
-  of silently treating them as migrated. Do not emit that legacy warning for
-  unrelated custom profiles.
-- Treat configuration and profile writes as one file set. If any write fails,
-  restore earlier writes before reporting failure. Remove only a backup newly
-  created by that same failed transaction when rollback succeeds; retain and
-  report it when rollback is incomplete.
-- If existing TOML is invalid, stop without editing it. Report the parse error
-  and let the user decide whether to repair the file.
-- Do not delete successful-run or older initializer backup files unless the
-  user explicitly requests their removal.
-
-## Expected Result
-
-For a fresh target, `.codex/config.toml` is an exact copy of the packaged
-canonical template, including `features.hooks = true`, the project-scoped
-Sequential Thinking MCP, `gpt-5.6-terra` for both memory models, and the source
-repository's sandbox, tool, agent, application, shell-environment, and defaults.
-
-For a target with an existing valid configuration, its prior settings and
-comments remain intact. In both cases the effective JSWORK-required value is:
-
-```toml
-[features]
-multi_agent = true
-hooks = true
-```
-
-It also has the `explore` project profile under `.codex/agents/`. It requests
-`gpt-5.3-codex-spark`, low reasoning effort, and a `workspace-write` sandbox
-only so it can create the one summary-source file designated by the caller.
-Its instructions prohibit Codex memory use and all other filesystem mutations.
-The main thread may start several sessions from this one profile when a single
-session is insufficient for the assigned scope.
-
-The same directory has `orcheestrate-team-pl`,
-`orcheestrate-team-developer`, and `orcheestrate-team-qa`. PL and QA request
-`gpt-5.6-luna`, high reasoning effort, and a read-only sandbox. The reusable
-developer profile requests `gpt-5.6-terra`, medium reasoning effort, and
-a `workspace-write` sandbox.
-
-The orchestrator uses the shared developer profile for two separate spawned
-sessions. Each spawn's initial prompt and stable task name identifies that
-session as Developer 1 or Developer 2. The role TOMLs are self-contained for
-their individual behavior and boundaries; the `orcheestrate-team` Skill owns
-the fixed roster, task assignment, coordination, and review flow.
-
-When Graphify was already enabled for the target, its native Codex integration
-also leaves one managed Graphify guidance section in root `AGENTS.md` and one
-compatible `PreToolUse` `hook-check` registration in `.codex/hooks.json`.
-
-The final setup report distinguishes source, project, installed-package, and
-active-session evidence. A passing initializer check is never reported as
-proof that changed plugin Skill content is installed or active.

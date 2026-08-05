@@ -1,0 +1,4 @@
+interface:
+  display_name: "Requirement"
+  short_description: "Elicit and validate a traceable requirements baseline"
+  default_prompt: "Use $requirement to elicit, validate, and submit a traceable requirements baseline."

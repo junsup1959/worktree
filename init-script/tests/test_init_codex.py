@@ -209,7 +209,13 @@ class InitCodexTests(unittest.TestCase):
 
     def test_setup_skill_separates_reflection_evidence(self) -> None:
         skill_dir = SCRIPT.parent.parent / "skills" / "setup"
-        instructions = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+        instruction_files = [
+            skill_dir / "SKILL.md",
+            *sorted((skill_dir / "references").glob("*.md")),
+        ]
+        instructions = "\n".join(
+            path.read_text(encoding="utf-8") for path in instruction_files
+        )
         interface = (skill_dir / "agents" / "openai.yaml").read_text(
             encoding="utf-8"
         )
@@ -229,7 +235,12 @@ class InitCodexTests(unittest.TestCase):
         self.assertIn("explicit user request", instructions)
         self.assertIn("installed-package, and session reflection", interface)
         self.assertFalse((skill_dir / "scripts").exists())
-        self.assertLessEqual(len(instructions.splitlines()), 300)
+        for markdown in skill_dir.rglob("*.md"):
+            self.assertLessEqual(
+                len(markdown.read_text(encoding="utf-8").splitlines()),
+                200,
+                markdown,
+            )
 
     def test_repository_config_matches_initializer_template(self) -> None:
         repository_root = SCRIPT.parent.parent
