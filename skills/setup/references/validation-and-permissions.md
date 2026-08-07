@@ -7,14 +7,11 @@ resolved plugin root:
 
 1. `.codex-plugin/plugin.json` has `name` set to `jswork` and `hooks` set to
    `./hooks/hooks.json`.
-2. `hooks/hooks.json` exists and its JSWORK learning handlers use
-   `${PLUGIN_ROOT}` on POSIX. Each Windows handler must use the package's
-   shell-neutral `powershell.exe -EncodedCommand` launcher. Its decoded script
-   resolves `$env:PLUGIN_ROOT` inside that nested PowerShell process and
-   propagates Node's exit code. Never put `%PLUGIN_ROOT%`, `${PLUGIN_ROOT}`, or
-   `$env:PLUGIN_ROOT` directly in the raw Windows command: Codex runs hook
-   commands through the active session shell, which may be PowerShell, cmd.exe,
-   or Git Bash.
+2. `hooks/hooks.json` exists and every JSWORK learning handler invokes
+   `node "${PLUGIN_ROOT}/hooks/capture-learning-turn.mjs"` directly through its
+   `command`. Do not define `commandWindows` or add a PowerShell, `pwsh`, or
+   `EncodedCommand` wrapper; the package hook must have one Node-to-JS execution
+   path on every platform.
 3. Run the package self-test when Node.js is available:
 
    ```powershell

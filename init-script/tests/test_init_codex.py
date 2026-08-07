@@ -67,6 +67,9 @@ class InitCodexTests(unittest.TestCase):
                 generated = tomllib.load(stream)
             self.assertIs(generated["features"]["multi_agent"], True)
             self.assertIs(generated["features"]["hooks"], True)
+            self.assertEqual(generated["model"], "gpt-5.6-luna")
+            self.assertEqual(generated["model_reasoning_effort"], "medium")
+            self.assertEqual(generated["review_model"], "gpt-5.6-luna")
             self.assertEqual(
                 generated["memories"]["extract_model"],
                 "gpt-5.6-terra",
@@ -209,6 +212,7 @@ class InitCodexTests(unittest.TestCase):
 
     def test_setup_skill_separates_reflection_evidence(self) -> None:
         skill_dir = SCRIPT.parent.parent / "skills" / "setup"
+        skill_instructions = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
         instruction_files = [
             skill_dir / "SKILL.md",
             *sorted((skill_dir / "references").glob("*.md")),
@@ -234,6 +238,12 @@ class InitCodexTests(unittest.TestCase):
         self.assertIn("proves only the project configuration", instructions)
         self.assertIn("explicit user request", instructions)
         self.assertIn("installed-package, and session reflection", interface)
+        self.assertIn(
+            'node "${PLUGIN_ROOT}/hooks/capture-learning-turn.mjs"',
+            skill_instructions,
+        )
+        self.assertIn("Do not define `commandWindows`", skill_instructions)
+        self.assertIn("PowerShell, `pwsh`, or `EncodedCommand`", skill_instructions)
         self.assertFalse((skill_dir / "scripts").exists())
         for markdown in skill_dir.rglob("*.md"):
             self.assertLessEqual(

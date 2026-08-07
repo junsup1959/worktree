@@ -27,8 +27,11 @@ initializer.
 Keep three hook surfaces separate:
 
 - The installed `jswork` package declares `hooks/hooks.json` through
-  `.codex-plugin/plugin.json`. Codex loads these plugin hooks; never copy them
-  into a target repository.
+  `.codex-plugin/plugin.json`. Every JSWORK learning handler must invoke
+  `node "${PLUGIN_ROOT}/hooks/capture-learning-turn.mjs"` directly through its
+  generic `command`. Do not define `commandWindows` or wrap the invocation with
+  PowerShell, `pwsh`, or `EncodedCommand`. Codex loads these plugin hooks; never
+  copy them into a target repository.
 - `features.hooks = true` in `<target-project>/.codex/config.toml` enables hook
   support but does not register a hook or create `.codex/hooks.json`.
 - Only Graphify may add its project-local `PreToolUse` `hook-check` entry to
